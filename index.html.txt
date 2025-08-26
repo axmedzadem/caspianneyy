@@ -2403,6 +2403,8 @@
           profileModalCloseButtonText: "Bağla",
           profileNameSaved: "Ad uğurla saxlandı!",
           profileNameTooShort: "Ad ən azı 3 simvol olmalıdır.",
+          saveNameButtonText: "Yadda Saxla",
+          taskFirstMine: "İlk Mədənini Et",
         },
         en: {
           appName: "CaspianCoin Miner",
@@ -2514,6 +2516,8 @@
           profileModalCloseButtonText: "Close",
           profileNameSaved: "Name saved successfully!",
           profileNameTooShort: "Name must be at least 3 characters.",
+          saveNameButtonText: "Save",
+          taskFirstMine: "Do First Mine",
         },
         ru: {
           appName: "CaspianCoin Miner",
@@ -2631,6 +2635,8 @@
           profileModalCloseButtonText: "Закрыть",
           profileNameSaved: "Имя успешно сохранено!",
           profileNameTooShort: "Имя должно содержать не менее 3 символов.",
+          saveNameButtonText: "Сохранить",
+          taskFirstMine: "Сделать первый майнинг",
         },
         tr: {
           appName: "CaspianCoin Madencisi",
@@ -2747,6 +2753,8 @@
           profileModalCloseButtonText: "Kapat",
           profileNameSaved: "İsim başarıyla kaydedildi!",
           profileNameTooShort: "İsim en az 3 karakter olmalıdır.",
+          saveNameButtonText: "Kaydet",
+          taskFirstMine: "İlk Madeni Yap",
         },
       };
       // Shop items configuration with level system
@@ -3609,7 +3617,7 @@
             currentTranslations.profileModalCloseButtonText;
         if (document.getElementById("saveNameButton"))
           document.getElementById("saveNameButton").textContent =
-            currentTranslations.saveSettingsButtonText;
+            currentTranslations.saveNameButtonText;
         if (document.getElementById("homeNav"))
           document.getElementById("homeNav").textContent =
             currentTranslations.homeNav;
