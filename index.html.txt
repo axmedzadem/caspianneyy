@@ -1,0 +1,4675 @@
+<!DOCTYPE html>
+<html lang="az">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <title>CaspianCoin Miner</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Telegram WebApp Script - This is critical! -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Chart.js CDN (Can be kept for future needs even if analytics section is removed) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      :root {
+        --primary: #6a11cb;
+        --secondary: #2575fc;
+        --accent: #ffeb3b;
+        --dark: #1a1a2e;
+        --light: #f8f9fa;
+        --success: #4caf50;
+        --warning: #ffc107;
+        --danger: #f44336;
+        --info: #2196f3;
+
+        /* Yeni fon dəyişənləri */
+        --bg1: #00111a;
+        --bg2: #012638;
+        --bg3: #024e6d;
+        --accent-bg: #00d1ff;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        user-select: none;
+      }
+
+      html,
+      body {
+        height: 100%; /* HTML və body tam hündürlüyü əhatə etməlidir */
+      }
+
+      body {
+        font-family: "Montserrat", sans-serif;
+        /* Köhnə background silindi, yeni fon əlavə edildi */
+        background: radial-gradient(
+            1200px 800px at 70% -10%,
+            rgba(0, 209, 255, 0.15),
+            transparent 60%
+          ),
+          radial-gradient(
+            800px 600px at 10% 120%,
+            rgba(0, 209, 255, 0.08),
+            transparent 60%
+          ),
+          linear-gradient(180deg, var(--bg1) 0%, var(--bg2) 45%, var(--bg3) 100%);
+        color: var(--light);
+        min-height: 100vh;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
+        touch-action: manipulation; /* Optimizes touch events */
+        overflow: hidden; /* Yeni fonun düzgün işləməsi üçün */
+      }
+
+      /* Yeni fon elementləri üçün stillər */
+      .scene {
+        position: fixed;
+        inset: 0;
+        perspective: 800px;
+        overflow: hidden;
+        z-index: 0; /* Əsas məzmundan arxada olmalıdır */
+      }
+
+      #background-canvas {
+        position: absolute; /* .scene daxilində mövqe tutur */
+        inset: 0; /* Bütün .scene sahəsini əhatə edir */
+        z-index: 0; /* Dalğaların arxasında qalması üçün */
+      }
+
+      .aurora {
+        position: absolute;
+        inset: -10% -10% -10% -10%;
+        background: conic-gradient(
+          from 180deg at 50% 50%,
+          rgba(0, 209, 255, 0.12),
+          transparent 30%,
+          rgba(0, 209, 255, 0.1) 60%,
+          transparent 85%,
+          rgba(0, 209, 255, 0.12)
+        );
+        filter: blur(60px) saturate(120%);
+        pointer-events: none;
+        z-index: 1; /* Canvas-ın üzərindədir */
+      }
+
+      .waves {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 2; /* Aurora-nın üzərindədir */
+      }
+      .wave {
+        position: absolute;
+        left: 0;
+        width: 140%;
+        height: auto;
+        opacity: 0.55;
+      }
+      .wave.wave-1 {
+        bottom: 22vh;
+      }
+      .wave.wave-2 {
+        bottom: 16vh;
+        opacity: 0.45;
+      }
+      .wave.wave-3 {
+        bottom: 9vh;
+        opacity: 0.35;
+      }
+
+      .main-content-wrapper {
+        flex-grow: 1;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start; /* Məzmunun yuxarıdan başlaması üçün */
+        overflow-y: auto; /* Əsas məzmunun sürüşdürülə bilməsi üçün */
+        padding-bottom: 80px;
+        -webkit-overflow-scrolling: touch;
+        position: relative; /* Z-index işləməsi üçün */
+        z-index: 10; /* Bütün fon elementlərindən üstə olmalıdır */
+        min-height: 0; /* Flexbox-da məzmunun daşmasının qarşısını alır */
+      }
+      .container {
+        position: relative;
+        z-index: 1;
+        max-width: 500px;
+        width: 100%;
+        padding: 0.8rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 0.8rem;
+        animation: fadeInDown 0.8s ease-out;
+        position: relative; /* For settings button */
+        width: 100%; /* For settings button */
+      }
+
+      .logo {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 0.6rem;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 6px 15px rgba(106, 17, 203, 0.5);
+        border: 2px solid var(--accent);
+        animation: pulse 2s infinite;
+        overflow: hidden;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+      }
+
+      h1 {
+        font-size: 1.8rem;
+        font-weight: 800;
+        background: linear-gradient(to right, var(--primary), var(--secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.3rem;
+        text-shadow: 0 1px 6px rgba(0, 0, 0, 0.2);
+      }
+      @media (max-width: 400px) {
+        h1 {
+          font-size: 1.5rem;
+        }
+      }
+
+      .subtitle {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.7);
+        margin-bottom: 0.8rem;
+      }
+
+      .balance-card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        padding: 1rem;
+        width: 100%;
+        margin-bottom: 0.8rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s ease;
+        animation: fadeIn 0.8s ease-out 0.2s both;
+      }
+
+      .balance-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+      }
+
+      .balance-label {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.7);
+        margin-bottom: 0.3rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .balance-label i {
+        margin-right: 0.3rem;
+        color: var(--accent);
+      }
+
+      .balance-amount {
+        font-size: 2.5rem;
+        font-weight: 800;
+        text-align: center;
+        background: linear-gradient(to right, var(--accent), #ffc107);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: 0.3rem 0;
+        text-shadow: 0 1px 8px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s ease;
+      }
+
+      /* Energy Bar Styles */
+      .energy-bar-container {
+        width: 100%;
+        margin-bottom: 0.8rem;
+        animation: fadeIn 0.8s ease-out 0.3s both;
+      }
+      .energy-info {
+        display: flex;
+        justify-content: center; /* Centered the info */
+        align-items: center;
+        gap: 0.5rem; /* Space between icon and text */
+        margin-bottom: 0.3rem;
+        font-size: 0.9rem; /* Slightly larger font */
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.8);
+      }
+      .energy-info i {
+        color: var(--warning);
+      }
+      .energy-bar {
+        width: 100%;
+        background-color: rgba(0, 0, 0, 0.3);
+        border-radius: 10px;
+        height: 12px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .energy-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--warning), var(--accent));
+        border-radius: 10px;
+        width: 100%; /* Default to full */
+        transition: width 0.5s ease-out;
+      }
+      .miner-button {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 100px;
+        height: 100px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        margin: 0.8rem 0;
+        box-shadow: 0 10px 20px rgba(106, 17, 203, 0.4),
+          0 0 0 6px rgba(255, 235, 59, 0.1), 0 0 0 10px rgba(255, 235, 59, 0.05);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        animation: bounceIn 0.8s ease-out 0.4s both;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .miner-button:hover {
+        transform: scale(1.02);
+        box-shadow: 0 14px 30px rgba(106, 17, 203, 0.6),
+          0 0 0 8px rgba(255, 235, 59, 0.2), 0 0 0 12px rgba(255, 235, 59, 0.1);
+      }
+
+      .miner-button:active,
+      .miner-button.active-press {
+        transform: scale(0.98);
+        box-shadow: 0 5px 10px rgba(106, 17, 203, 0.6),
+          0 0 0 4px rgba(255, 235, 59, 0.1), 0 0 0 6px rgba(255, 235, 59, 0.05);
+      }
+
+      .miner-button::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(
+          circle,
+          rgba(255, 255, 255, 0.8) 0%,
+          rgba(255, 255, 255, 0) 70%
+        );
+        transform: scale(0);
+        opacity: 0;
+        transition: all 0.5s ease;
+      }
+
+      .miner-button:active::before {
+        transform: scale(1);
+        opacity: 0.4;
+      }
+
+      .miner-button i {
+        font-size: 2rem;
+        margin-bottom: 0.3rem;
+        transition: all 0.3s ease;
+      }
+
+      .miner-button:active i {
+        transform: scale(0.97);
+      }
+
+      .stats {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+        margin-bottom: 0.8rem;
+        animation: fadeIn 0.8s ease-out 0.6s both;
+      }
+
+      .stat-card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(5px);
+        border-radius: 10px;
+        padding: 0.6rem;
+        width: 48%;
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .stat-label {
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.7);
+        margin-bottom: 0.3rem;
+      }
+
+      .stat-value {
+        font-size: 1rem;
+        font-weight: 600;
+        color: white;
+      }
+
+      .click-power {
+        color: var(--accent);
+      }
+
+      .total-earned {
+        color: var(--success);
+      }
+
+      .action-buttons {
+        width: 100%;
+        animation: fadeIn 0.8s ease-out 0.8s both;
+      }
+
+      .action-button,
+      .llm-button,
+      #tasksSection .task-item button,
+      #referralSection .referral-code button,
+      .shop-item-button,
+      .card-item-button,
+      #exchangeSection .exchange-button,
+      .modal-close,
+      .nav-button {
+        cursor: pointer;
+      }
+      .action-button {
+        width: 100%;
+        padding: 0.6rem;
+        margin-bottom: 0.5rem;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .action-button i {
+        margin-right: 0.3rem;
+      }
+
+      .upgrade-button {
+        background: linear-gradient(135deg, #1e88e5, #0d47a1);
+        color: white;
+        box-shadow: 0 3px 10px rgba(30, 136, 229, 0.4);
+      }
+
+      .upgrade-button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 5px 12px rgba(30, 136, 229, 0.6);
+      }
+
+      .bonus-button {
+        background: linear-gradient(135deg, #4caf50, #2e7d32);
+        color: white;
+        box-shadow: 0 3px 10px rgba(76, 175, 80, 0.4);
+      }
+
+      .bonus-button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 5px 12px rgba(76, 175, 80, 0.6);
+      }
+
+      .action-button:disabled {
+        background: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.5);
+        cursor: not-allowed;
+        box-shadow: none;
+      }
+
+      .action-button:disabled:hover {
+        transform: none;
+        box-shadow: none;
+      }
+      .llm-button {
+        /* This button will now be used for "Cards" */
+        background: linear-gradient(135deg, #ff6f00, #ffd600);
+        color: white;
+        box-shadow: 0 3px 10px rgba(255, 111, 0, 0.4);
+        margin-top: 0.5rem;
+      }
+      .llm-button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 5px 12px rgba(255, 111, 0, 0.6);
+      }
+
+      /* Navigation Bar */
+      .navbar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: linear-gradient(to top, #1a1a2e, #16213e);
+        padding: 0.4rem 0;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 -3px 15px rgba(0, 0, 0, 0.3);
+        z-index: 50;
+      }
+      .nav-button {
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 0.4rem 0.1rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        transition: all 0.2s ease;
+        flex: 1;
+        max-width: 100px;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .nav-button i {
+        font-size: 1.3rem;
+        margin-bottom: 0.1rem;
+        transition: all 0.2s ease;
+      }
+      .nav-button.active {
+        color: var(--accent);
+      }
+      .nav-button.active i {
+        transform: scale(1.1);
+      }
+      .nav-button:hover {
+        color: var(--light);
+      }
+      .nav-button:hover i {
+        transform: scale(1.05);
+      }
+      /* Section visibility */
+      .content-section {
+        display: none;
+        width: 100%;
+        flex-direction: column;
+        align-items: center;
+        padding: 0.8rem 0;
+      }
+      .content-section.active {
+        display: flex;
+      }
+      /* Specific section styles */
+      #tasksSection h2,
+      #referralSection h2,
+      #shopSection h2,
+      #exchangeSection h2,
+      #cardsSection h2,
+      #settingsSection h2 {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: var(--light);
+        margin-bottom: 0.8rem;
+        text-align: center;
+      }
+      #tasksSection p,
+      #referralSection p,
+      #shopSection p,
+      #exchangeSection p,
+      #cardsSection p,
+      #settingsSection p {
+        color: rgba(255, 255, 255, 0.7);
+        text-align: center;
+        margin-bottom: 0.8rem;
+        font-size: 0.85rem;
+      }
+      #tasksSection .task-item {
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 8px;
+        padding: 0.6rem;
+        margin-bottom: 0.5rem;
+        width: 95%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+      #tasksSection .task-item span {
+        font-size: 0.85rem;
+        font-weight: 500;
+        display: flex; /* Allow icon and text to be on one line */
+        align-items: center;
+      }
+
+      #tasksSection .task-item span i {
+        margin-right: 0.5rem; /* Space between icon and text */
+        font-size: 1.1rem; /* Adjust icon size */
+      }
+      #tasksSection .task-item button {
+        background: var(--success);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 0.3rem 0.6rem;
+        font-size: 0.75rem;
+        transition: background 0.2s ease;
+      }
+      #tasksSection .task-item button:hover {
+        background: #388e3c;
+      }
+      #tasksSection .task-item button:disabled {
+        background: rgba(76, 175, 80, 0.3);
+        color: rgba(255, 255, 255, 0.5);
+        cursor: not-allowed;
+      }
+      /* Telegram task button specific style */
+      #tasksSection .task-item button.telegram-button {
+        background: linear-gradient(
+          135deg,
+          #0088cc,
+          #005f8c
+        ); /* Telegram blue */
+      }
+      #tasksSection .task-item button.telegram-button:hover {
+        background: #005f8c;
+      }
+      #tasksSection .task-item button.telegram-button:disabled {
+        background: rgba(0, 136, 204, 0.3);
+      }
+      /* YouTube task button specific style */
+      #tasksSection .task-item button.youtube-button {
+        background: linear-gradient(135deg, #ff0000, #cc0000); /* YouTube red */
+      }
+      #tasksSection .task-item button.youtube-button:hover {
+        background: #cc0000;
+      }
+      #tasksSection .task-item button.youtube-button:disabled {
+        background: rgba(255, 0, 0, 0.3);
+      }
+      /* TikTok task button specific style */
+      #tasksSection .task-item button.tiktok-button {
+        background: linear-gradient(
+          135deg,
+          #000000,
+          #222222
+        ); /* TikTok black */
+        color: #00f2ea; /* TikTok blue-green for contrast */
+      }
+      #tasksSection .task-item button.tiktok-button:hover {
+        background: #222222;
+      }
+      #tasksSection .task-item button.tiktok-button:disabled {
+        background: rgba(0, 0, 0, 0.3);
+        color: rgba(0, 242, 234, 0.5);
+      }
+
+      #referralSection .referral-code {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        width: 90%;
+        text-align: center;
+      }
+      #referralSection .referral-code span {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--accent);
+        display: block;
+        margin-bottom: 0.5rem;
+        user-select: text;
+        word-break: break-all; /* For long codes to fit in one line */
+      }
+      #referralSection .referral-code button {
+        background: #1e88e5;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6rem 1.2rem;
+        font-size: 0.9rem;
+        transition: background 0.2s ease;
+      }
+      #referralSection .referral-code button:hover {
+        background: #0d47a1;
+      }
+      /* Changes for Referral statistics */
+      #referralSection .referral-stats {
+        display: flex;
+        justify-content: space-around;
+        width: 90%;
+        margin-top: 1rem;
+        flex-wrap: wrap; /* For wrapping on smaller screens */
+        gap: 0.8rem; /* Space between elements */
+      }
+      #referralSection .referral-stat-item {
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        padding: 0.8rem;
+        width: 48%; /* For two columns */
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        flex-grow: 1; /* To fill empty space */
+        min-width: 150px; /* To prevent too much shrinking */
+      }
+      #referralSection .referral-stat-item .value {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--light);
+      }
+      #referralSection .referral-stat-item .label {
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.6);
+      }
+      /* Shop Section Styles */
+      #shopSection .shop-items-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); /* Minimum eni azaldıldı */
+        gap: 0.8rem;
+        width: 100%;
+        max-width: 450px;
+        margin-top: 0.5rem;
+      }
+      #shopSection .shop-item {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 0.8rem;
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: transform 0.2s ease;
+      }
+      #shopSection .shop-item:hover {
+        transform: translateY(-3px);
+      }
+      #shopSection .shop-item-icon {
+        /* Changed from image to icon for flexibility */
+        font-size: 3rem; /* Larger icon */
+        color: var(--accent);
+        margin-bottom: 0.5rem;
+      }
+      #shopSection .shop-item-icon img {
+        /* Style for actual images if used */
+        width: 100%;
+        height: 100%;
+        max-width: 80px; /* Adjust as needed */
+        border-radius: 8px;
+        margin: 0 auto;
+        object-fit: contain; /* Ensure image fits well */
+      }
+      #shopSection .shop-item-name {
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+        color: var(--light);
+      }
+      #shopSection .shop-item-description {
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.7);
+        margin-bottom: 0.5rem;
+        flex-grow: 1;
+      }
+      #shopSection .shop-item-level {
+        font-size: 0.8rem;
+        color: var(--accent);
+        margin: 0.3rem 0;
+        font-weight: 600;
+      }
+      #shopSection .shop-item-level span {
+        color: var(--light);
+      }
+      #shopSection .shop-item-cost {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--accent);
+        margin-bottom: 0.5rem;
+      }
+      #shopSection .shop-item-button {
+        background: linear-gradient(135deg, #1e88e5, #0d47a1);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        width: 100%;
+      }
+      #shopSection .shop-item-button:hover {
+        background: linear-gradient(135deg, #0d47a1, #1e88e5);
+        transform: translateY(-1px);
+      }
+      #shopSection .shop-item-button:disabled {
+        background: rgba(30, 136, 229, 0.3);
+        color: rgba(255, 255, 255, 0.5);
+        cursor: not-allowed;
+        box-shadow: none;
+      }
+      /* Exchange Section Styles */
+      #exchangeSection .exchange-card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        padding: 1rem;
+        width: 100%;
+        margin-bottom: 0.8rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      #exchangeSection .exchange-input-group {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.8rem;
+        width: 100%;
+        max-width: 300px;
+      }
+      #exchangeSection .exchange-input-group input {
+        flex-grow: 1;
+        padding: 0.6rem;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        background-color: rgba(0, 0, 0, 0.2);
+        color: var(--light);
+        font-size: 1rem;
+        margin-right: 0.5rem;
+        min-width: 0; /* Allow shrinking */
+        text-overflow: ellipsis; /* Show ellipsis for overflow */
+      }
+      #exchangeSection .exchange-input-group span {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--accent);
+      }
+      #exchangeSection .exchange-rate {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.7);
+        margin-bottom: 0.8rem;
+        text-align: center;
+      }
+      #exchangeSection .exchange-button {
+        background: linear-gradient(135deg, var(--info), #0d47a1);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6rem 1.2rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        width: 100%;
+        max-width: 200px;
+      }
+      #exchangeSection .exchange-button:hover {
+        background: linear-gradient(135deg, #0d47a1, var(--info));
+        transform: translateY(-1px);
+      }
+      #exchangeSection .exchange-button:disabled {
+        background: rgba(33, 150, 243, 0.3);
+        color: rgba(255, 255, 255, 0.5);
+        cursor: not-allowed;
+        box-shadow: none;
+      }
+      /* Cards Section Styles */
+      #cardsSection .cards-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); /* Minimum eni azaldıldı */
+        gap: 0.8rem;
+        width: 100%;
+        max-width: 450px;
+        margin-top: 0.5rem;
+      }
+      #cardsSection .card-item {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 0.8rem;
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: transform 0.2s ease;
+      }
+      #cardsSection .card-item:hover {
+        transform: translateY(-3px);
+      }
+      #cardsSection .card-item-icon {
+        /* Changed from image to icon for flexibility */
+        width: 100%;
+        height: 80px; /* Fixed height for consistent image size */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 0.5rem;
+        overflow: hidden; /* Ensure image doesn't overflow */
+      }
+      #cardsSection .card-item-icon img {
+        /* Style for actual images if used */
+        width: auto; /* Maintain aspect ratio */
+        height: 100%; /* Fill the height of the container */
+        max-width: 100%; /* Ensure it doesn't overflow horizontally */
+        border-radius: 8px;
+        object-fit: contain; /* Ensure image fits well */
+      }
+      #cardsSection .card-item-name {
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+        color: var(--light);
+      }
+      #cardsSection .card-item-bonus {
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.7);
+        margin-bottom: 0.5rem;
+      }
+      #cardsSection .card-item-level {
+        font-size: 0.8rem;
+        color: var(--accent);
+        margin: 0.3rem 0;
+        font-weight: 600;
+      }
+      #cardsSection .card-item-level span {
+        color: var(--light);
+      }
+      #cardsSection .card-item-cost {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--accent);
+        margin-bottom: 0.5rem;
+      }
+      #cardsSection .card-item-button {
+        background: linear-gradient(135deg, #1e88e5, #0d47a1);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        width: 100%;
+      }
+      #cardsSection .card-item-button:hover {
+        background: linear-gradient(135deg, #0d47a1, #1e88e5);
+        transform: translateY(-1px);
+      }
+      #cardsSection .card-item-button:disabled {
+        background: rgba(30, 136, 229, 0.3);
+        color: rgba(255, 255, 255, 0.5);
+        cursor: not-allowed;
+        box-shadow: none;
+      }
+      /* Settings Section Styles */
+      #settingsSection .settings-group {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px); /* Blur effekti əlavə edildi */
+        border-radius: 15px;
+        padding: 1rem;
+        width: 100%;
+        margin-bottom: 0.8rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      #settingsSection .settings-group label {
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.7);
+        margin-bottom: 0.5rem;
+        text-align: center;
+        width: 100%;
+      }
+      #settingsSection .settings-group input[type="text"],
+      #settingsSection .settings-group select {
+        width: 90%;
+        padding: 0.6rem;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        background-color: rgba(0, 0, 0, 0.2);
+        color: var(--light);
+        font-size: 1rem;
+        margin-bottom: 0.8rem;
+        text-align: center;
+      }
+      #settingsSection .settings-group select option {
+        background-color: var(--dark);
+        color: var(--light);
+      }
+      #settingsSection .wallet-info {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 1rem;
+      }
+      #settingsSection .wallet-info .balance-label {
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.7);
+        margin-bottom: 0.3rem;
+      }
+      #settingsSection .wallet-info .balance-amount {
+        font-size: 1.8rem;
+        margin-bottom: 0.5rem;
+      }
+
+      /* Settings button in header */
+      .settings-button-header {
+        position: absolute;
+        top: 0.8rem;
+        right: 0.8rem;
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 1.5rem;
+        cursor: pointer;
+        transition: color 0.2s ease;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .settings-button-header:hover {
+        color: var(--accent);
+      }
+      /* Profile Button in Header */
+      .profile-button-header {
+        position: absolute;
+        top: 0.8rem;
+        left: 0.8rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 0.3rem 0.6rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .profile-button-header:hover {
+        background: rgba(255, 255, 255, 0.15);
+        transform: translateY(-1px);
+      }
+      .profile-button-header img {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 1px solid var(--accent);
+        object-fit: cover;
+      }
+      .profile-button-header span {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--light);
+      }
+
+      /* Toast Notification */
+      .toast-notification {
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 8px;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+        font-size: 0.9rem;
+        text-align: center; /* Center text */
+        white-space: normal; /* Allow text to wrap */
+        max-width: 90%; /* Prevent too wide on small screens */
+      }
+      .toast-notification.show {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      /* Coin, Confetti, Modal styles */
+      .coin {
+        position: absolute;
+        width: 30px;
+        height: 30px;
+        background: radial-gradient(circle at 30% 30%, #ffeb3b, #fbc02d);
+        border-radius: 50%;
+        box-shadow: 0 0 10px rgba(255, 235, 59, 0.7);
+        pointer-events: none;
+        z-index: 10;
+        animation: float 3s infinite ease-in-out;
+      }
+
+      .coin-popup {
+        position: absolute;
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: var(--accent);
+        text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        pointer-events: none;
+        z-index: 20;
+        animation: popup 1s forwards;
+        white-space: nowrap;
+      }
+
+      .confetti {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        background: var(--accent);
+        opacity: 0;
+        pointer-events: none;
+        z-index: 5;
+      }
+
+      .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(5px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.3s ease;
+      }
+      .modal.active {
+        opacity: 1;
+        pointer-events: all;
+      }
+
+      .modal-content {
+        background: linear-gradient(135deg, #1a1a2e, #16213e);
+        border-radius: 20px;
+        padding: 2rem;
+        max-width: 90%;
+        width: 400px;
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transform: scale(0.9);
+        transition: all 0.3s ease;
+        position: relative;
+      }
+
+      .modal.active .modal-content {
+        transform: scale(1);
+      }
+
+      .modal-title {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+        color: white;
+        text-align: center;
+      }
+
+      .modal-message {
+        margin-bottom: 1.5rem;
+        color: rgba(255, 255, 255, 0.8);
+        text-align: center;
+      }
+
+      .modal-close {
+        background: var(--danger);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.8rem 1.5rem;
+        font-size: 1rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+      }
+
+      .modal-close:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(244, 67, 54, 0.4);
+      }
+
+      /* Loading Overlay */
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        color: white;
+        font-size: 1.5rem;
+        flex-direction: column;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+        opacity: 0; /* Hidden by default */
+        visibility: hidden; /* Hidden by default */
+      }
+      .loading-overlay.show {
+        opacity: 1;
+        visibility: visible;
+      }
+      .loading-spinner {
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top: 4px solid var(--accent);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin-bottom: 10px;
+      }
+      /* User ID Display */
+      .user-id-display {
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.5);
+        margin-top: 1rem;
+        word-break: break-all;
+        text-align: center;
+        padding: 0 1rem;
+      }
+      /* Firebase Status Display */
+      #firebaseStatus {
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.5);
+        margin-top: 0.5rem;
+        text-align: center;
+        padding: 0 1rem;
+      }
+      /* Profile Modal Specific Styles */
+      #profileModal .profile-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.8rem;
+      }
+      #profileModal .profile-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid var(--accent);
+        box-shadow: 0 0 15px rgba(255, 235, 59, 0.5);
+        overflow: hidden;
+      }
+      #profileModal .profile-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+      }
+      #profileModal .profile-name-container {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.3rem;
+      }
+      #profileModal .profile-name {
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: var(--light);
+      }
+      #profileModal .edit-name-button {
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: color 0.2s ease;
+      }
+      #profileModal .edit-name-button:hover {
+        color: var(--accent);
+      }
+      #profileModal .name-edit-input {
+        background-color: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 8px;
+        padding: 0.4rem 0.6rem;
+        color: var(--light);
+        font-size: 1.2rem;
+        text-align: center;
+        width: 80%;
+        max-width: 250px;
+        margin-bottom: 0.5rem;
+      }
+      #profileModal .save-name-button {
+        background: linear-gradient(135deg, var(--success), #2e7d32);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        transition: all 0.2s ease;
+      }
+      #profileModal .save-name-button:hover {
+        background: #2e7d32;
+      }
+      #profileModal .profile-level {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--accent);
+        margin-bottom: 0.5rem;
+      }
+      #profileModal .progress-bar-container {
+        width: 90%;
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        height: 15px;
+        overflow: hidden;
+        margin-bottom: 0.5rem;
+      }
+      #profileModal .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary), var(--secondary));
+        border-radius: 10px;
+        width: 0%;
+        transition: width 0.5s ease-out;
+      }
+      #profileModal .progress-text {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.8);
+        margin-bottom: 1rem;
+      }
+      #profileModal .profile-stats {
+        width: 90%;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      #profileModal .stat-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.7);
+      }
+      #profileModal .stat-value {
+        font-weight: 600;
+        color: var(--light);
+      }
+      /* Level Up Effect */
+      .level-up-effect {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 1000;
+        text-align: center;
+        animation: levelUpPulse 3s ease-out forwards;
+      }
+
+      .level-up-text {
+        font-size: 3rem;
+        font-weight: 800;
+        background: linear-gradient(
+          to right,
+          var(--primary),
+          var(--secondary),
+          var(--accent)
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 0 20px rgba(255, 235, 59, 0.7);
+        animation: levelUpText 3s ease-out forwards;
+      }
+      /* Animations */
+      @keyframes fadeInDown {
+        from {
+          opacity: 0;
+          transform: translateY(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes pulse {
+        0% {
+          transform: scale(1);
+          box-shadow: 0 6px 15px rgba(106, 17, 203, 0.5),
+            0 0 0 2px rgba(255, 235, 59, 0.1),
+            0 0 0 4px rgba(255, 235, 59, 0.05);
+        }
+        50% {
+          transform: scale(1.03);
+          box-shadow: 0 8px 20px rgba(106, 17, 203, 0.7),
+            0 0 0 4px rgba(255, 235, 59, 0.2), 0 0 0 8px rgba(255, 235, 59, 0.1);
+        }
+        100% {
+          transform: scale(1);
+          box-shadow: 0 6px 15px rgba(106, 17, 203, 0.5),
+            0 0 0 2px rgba(255, 235, 59, 0.1),
+            0 0 0 4px rgba(255, 235, 59, 0.05);
+        }
+      }
+      @keyframes bounceIn {
+        0%,
+        20%,
+        40%,
+        60%,
+        80%,
+        100% {
+          transition-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+        }
+        0% {
+          opacity: 0;
+          transform: scale3d(0.3, 0.3, 0.3);
+        }
+        20% {
+          transform: scale3d(1.1, 1.1, 1.1);
+        }
+        40% {
+          transform: scale3d(0.9, 0.9, 0.9);
+        }
+        60% {
+          opacity: 1;
+          transform: scale3d(1.03, 1.03, 1.03);
+        }
+        80% {
+          transform: scale3d(0.97, 0.97, 0.97);
+        }
+        100% {
+          opacity: 1;
+          transform: scale3d(1, 1, 1);
+        }
+      }
+      @keyframes float {
+        0% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+        100% {
+          transform: translateY(0px);
+        }
+      }
+      @keyframes popup {
+        0% {
+          transform: translate(-50%, 0) scale(0);
+          opacity: 0;
+        }
+        50% {
+          transform: translate(-50%, -30px) scale(1.2);
+          opacity: 1;
+        }
+        100% {
+          transform: translate(-50%, -60px) scale(1);
+          opacity: 0;
+        }
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes levelUpPulse {
+        0% {
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(0.5);
+        }
+        50% {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1.2);
+        }
+        100% {
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(1);
+        }
+      }
+      @keyframes levelUpText {
+        0% {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        50% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        100% {
+          opacity: 0;
+          transform: translateY(-20px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Yeni Arxa Fon Elementləri -->
+    <div class="scene" aria-hidden="true">
+      <!-- Plexus effekti üçün Canvas elementi dalğaların arxasına yerləşdirilib -->
+      <canvas id="background-canvas"></canvas>
+
+      <div class="aurora"></div>
+
+      <div class="waves">
+        <svg
+          class="wave wave-1"
+          viewBox="0 0 1440 150"
+          preserveAspectRatio="none"
+        >
+          <path
+            d="M0,60 C240,120 360,0 600,40 C840,80 960,20 1200,60 C1320,80 1380,70 1440,80 L1440,150 L0,150 Z"
+            fill="rgba(0,209,255,0.15)"
+          />
+        </svg>
+        <svg
+          class="wave wave-2"
+          viewBox="0 0 1440 150"
+          preserveAspectRatio="none"
+        >
+          <path
+            d="M0,70 C240,30 360,120 600,80 C840,40 960,100 1200,60 C1320,45 1380,70 1440,65 L1440,150 L0,150 Z"
+            fill="rgba(0,209,255,0.18)"
+          />
+        </svg>
+        <svg
+          class="wave wave-3"
+          viewBox="0 0 1440 150"
+          preserveAspectRatio="none"
+        >
+          <path
+            d="M0,85 C240,110 360,80 600,100 C840,120 960,80 1200,95 C1320,102 1380,90 1440,92 L1440,150 L0,150 Z"
+            fill="rgba(0,209,255,0.12)"
+          />
+        </svg>
+      </div>
+    </div>
+    <!-- Yükləmə Overlay-i -->
+    <div id="loadingOverlay" class="loading-overlay">
+      <div class="loading-spinner"></div>
+      <p id="loadingText">Yüklənir...</p>
+    </div>
+    <div class="main-content-wrapper">
+      <div class="container">
+        <!-- Başlıq Bölməsi -->
+        <div class="header">
+          <button
+            id="profileButtonHeader"
+            class="profile-button-header"
+            aria-label="Profil"
+          >
+            <img
+              src="https://i.imgur.com/qmQbsDq.png"
+              alt="CaspianCoin Loqosu"
+            />
+            <span id="profileLevelDisplay">LVL 1</span>
+          </button>
+          <button
+            id="settingsButtonHeader"
+            class="settings-button-header"
+            aria-label="Tənzimləmələr"
+          >
+            <i class="fas fa-cog"></i>
+          </button>
+          <div class="logo">
+            <!-- CC şəkli -->
+            <img
+              src="https://i.imgur.com/qmQbsDq.png"
+              alt="CaspianCoin Loqosu"
+            />
+          </div>
+          <h1 id="appName">CaspianCoin Miner</h1>
+          <p id="subtitle" class="subtitle">Kriptovalyuta qazanın!</p>
+        </div>
+        <!-- Əsas Bölmə -->
+        <section id="homeSection" class="content-section active">
+          <!-- Balans Kartı -->
+          <div class="balance-card">
+            <p id="balanceLabel" class="balance-label">
+              <i class="fas fa-coins"></i> Balansınız
+            </p>
+            <p id="balanceAmount" class="balance-amount">0</p>
+            <p class="balance-label">CC</p>
+          </div>
+          <!-- YENİ: Enerji Barı -->
+          <div class="energy-bar-container">
+            <div class="energy-info">
+              <i class="fas fa-bolt"></i>
+              <span id="energyText">1000 / 1000</span>
+            </div>
+            <div class="energy-bar">
+              <div id="energyBarFill" class="energy-bar-fill"></div>
+            </div>
+          </div>
+          <!-- Mədənçi Düyməsi -->
+          <button id="minerButton" class="miner-button">
+            <i class="fas fa-hand-rock"></i>
+            <span id="mineButtonText">Mədən Et</span>
+          </button>
+          <!-- Statistikalar Bölməsi -->
+          <div class="stats">
+            <div class="stat-card">
+              <p id="clickPowerLabel" class="stat-label">Klik Gücü</p>
+              <p id="clickPower" class="stat-value click-power">1 CC/klik</p>
+            </div>
+            <div class="stat-card">
+              <p id="totalEarnedLabel" class="stat-label">Ümumi Qazanılan</p>
+              <p id="totalEarned" class="stat-value total-earned">0 CC</p>
+            </div>
+          </div>
+          <div class="action-buttons">
+            <button
+              id="increaseClickPowerButton"
+              class="action-button upgrade-button"
+            >
+              <i class="fas fa-arrow-up"></i>
+              <span id="increaseClickPowerButtonText">Klik gücünü artır</span>
+            </button>
+            <button id="bonusButton" class="action-button bonus-button">
+              <i class="fas fa-gift"></i>
+              <span id="bonusButtonText">Bonus Qazan</span>
+            </button>
+          </div>
+        </section>
+        <!-- Tapşırıqlar Bölməsi -->
+        <section id="tasksSection" class="content-section">
+          <h2 id="tasksTitle">Tapşırıqlar</h2>
+          <p id="tasksSubtitle">
+            Tapşırıqları tamamlayaraq əlavə CaspianCoin qazanın.
+          </p>
+          <div class="task-item">
+            <span id="taskJoinTelegram"
+              ><i class="fab fa-telegram-plane"></i> Telegram Kanalına
+              Qoşul</span
+            >
+            <button id="joinTelegramChannel" class="telegram-button">
+              Qoşul
+            </button>
+          </div>
+          <div class="task-item">
+            <span id="taskFollowTwitter"
+              ><i class="fab fa-twitter"></i> Twitter-də Bizi İzlə</span
+            >
+            <button id="followTwitter">İzlə</button>
+          </div>
+          <div class="task-item">
+            <span id="taskJoinYoutube"
+              ><i class="fab fa-youtube"></i> YouTube Kanalına Abunə Ol</span
+            >
+            <button id="joinYoutubeChannel" class="youtube-button">
+              Abunə Ol
+            </button>
+          </div>
+          <div class="task-item">
+            <span id="taskFollowTiktok"
+              ><i class="fab fa-tiktok"></i> TikTok-da Bizi İzlə</span
+            >
+            <button id="followTiktok" class="tiktok-button">İzlə</button>
+          </div>
+          <div class="task-item">
+            <span id="taskFirstMine">İlk Mədənini Et</span>
+            <button id="firstMineTask">Et</button>
+          </div>
+          <!-- Daha çox tapşırıqlar buraya əlavə edin -->
+        </section>
+        <!-- Dəvət Bölməsi -->
+        <section id="referralSection" class="content-section">
+          <h2 id="referralTitle">Dostlarını Dəvət Et</h2>
+          <p id="referralSubtitle">
+            Dostlarınızı dəvət edin və onların qazancından bonus əldə edin!
+          </p>
+          <div class="referral-code">
+            <p id="referralCodeLabel" class="text-sm text-gray-400 mb-2">
+              Dəvət Kodunuz:
+            </p>
+            <span id="referralCode">Yüklənir...</span>
+            <button id="copyReferralCode">
+              <i class="fas fa-copy"></i>
+              <span id="copyCodeButtonText">Kodu Kopyala</span>
+            </button>
+          </div>
+          <div class="referral-stats">
+            <div id="totalReferralsContainer" class="referral-stat-item">
+              <div id="totalReferrals" class="value">0</div>
+              <div id="totalReferralsLabel" class="label">Dəvət Edilənlər</div>
+            </div>
+            <div id="referralBonusContainer" class="referral-stat-item">
+              <div id="referralBonus" class="value">0 CC</div>
+              <div id="referralBonusLabel" class="label">Dəvət Bonusu</div>
+            </div>
+          </div>
+        </section>
+        <!-- Mağaza Bölməsi -->
+        <section id="shopSection" class="content-section">
+          <h2 id="shopTitle">Mağaza</h2>
+          <p id="shopSubtitle">
+            Mədən gücünüzü artırmaq üçün təkmilləşdirmələr alın.
+          </p>
+          <div class="shop-items-grid">
+            <div class="shop-item" data-item-id="power_upgrade_1">
+              <i class="fas fa-bolt shop-item-icon"></i>
+              <h3 id="powerUpgrade1Name" class="shop-item-name">
+                Güc Təkmilləşdirməsi I
+              </h3>
+              <p id="powerUpgrade1Desc" class="shop-item-description">
+                Klik başına qazancı 1 CC artırır.
+              </p>
+              <div class="shop-item-level">Səviyyə: <span>0</span>/10</div>
+              <p class="shop-item-cost">100 CC</p>
+              <button
+                class="shop-item-button"
+                id="shopItemButton_power_upgrade_1"
+              >
+                Yüksəlt
+              </button>
+            </div>
+            <div class="shop-item" data-item-id="auto_miner_1">
+              <i class="fas fa-robot shop-item-icon"></i>
+              <h3 id="autoMiner1Name" class="shop-item-name">
+                Avtomatik Mədənçi I
+              </h3>
+              <p id="autoMiner1Desc" class="shop-item-description">
+                Saniyədə 0.1 CC avtomatik qazanır.
+              </p>
+              <div class="shop-item-level">Səviyyə: <span>0</span>/10</div>
+              <p class="shop-item-cost">500 CC</p>
+              <button class="shop-item-button" id="shopItemButton_auto_miner_1">
+                Yüksəlt
+              </button>
+            </div>
+            <div class="shop-item" data-item-id="energy_boost_1">
+              <i class="fas fa-battery-full shop-item-icon"></i>
+              <h3 id="energyBoost1Name" class="shop-item-name">
+                Enerji Artırıcı I
+              </h3>
+              <p id="energyBoost1Desc" class="shop-item-description">
+                Enerji limitini 1000 artırır.
+              </p>
+              <div class="shop-item-level">Səviyyə: <span>0</span>/10</div>
+              <p class="shop-item-cost">200 CC</p>
+              <button
+                class="shop-item-button"
+                id="shopItemButton_energy_boost_1"
+              >
+                Yüksəlt
+              </button>
+            </div>
+            <!-- Yeni Mağaza Elementləri -->
+            <div class="shop-item" data-item-id="speed_booster_1">
+              <i class="fas fa-tachometer-alt shop-item-icon"></i>
+              <h3 id="speedBooster1Name" class="shop-item-name">
+                Sürət Gücləndiricisi I
+              </h3>
+              <p id="speedBooster1Desc" class="shop-item-description">
+                Avtomatik mədənçilik sürətini 1.5x artırır.
+              </p>
+              <div class="shop-item-level">Səviyyə: <span>0</span>/10</div>
+              <p class="shop-item-cost">750 CC</p>
+              <button
+                class="shop-item-button"
+                id="shopItemButton_speed_booster_1"
+              >
+                Yüksəlt
+              </button>
+            </div>
+            <div class="shop-item" data-item-id="protection_shield_1">
+              <i class="fas fa-shield-alt shop-item-icon"></i>
+              <h3 id="protectionShield1Name" class="shop-item-name">
+                Mühafizə Qalxanı I
+              </h3>
+              <p id="protectionShield1Desc" class="shop-item-description">
+                30 saniyəlik klik gücünü ikiqat artırır.
+              </p>
+              <div class="shop-item-level">Səviyyə: <span>0</span>/10</div>
+              <p class="shop-item-cost">1500 CC</p>
+              <button
+                class="shop-item-button"
+                id="shopItemButton_protection_shield_1"
+              >
+                Yüksəlt
+              </button>
+            </div>
+            <div class="shop-item" data-item-id="rare_crate_1">
+              <i class="fas fa-box-open shop-item-icon"></i>
+              <h3 id="rareCrate1Name" class="shop-item-name">Nadir Sandıq</h3>
+              <p id="rareCrate1Desc" class="shop-item-description">
+                Təsadüfi miqdarda CaspianCoin qazanın (500-2000 CC).
+              </p>
+              <div class="shop-item-level">Səviyyə: <span>0</span>/10</div>
+              <p class="shop-item-cost">1000 CC</p>
+              <button class="shop-item-button" id="shopItemButton_rare_crate_1">
+                Yüksəlt
+              </button>
+            </div>
+          </div>
+        </section>
+        <!-- Mübadilə Bölməsi -->
+        <section id="exchangeSection" class="content-section">
+          <h2 id="exchangeTitle">Mübadilə</h2>
+          <p id="exchangeSubtitle">
+            CaspianCoin-lərinizi digər valyutalara çevirin.
+          </p>
+          <div class="exchange-card">
+            <div class="exchange-input-group">
+              <input
+                type="number"
+                id="exchangeAmount"
+                placeholder="Məbləğ daxil edin"
+                min="1"
+              />
+              <span>CC</span>
+            </div>
+            <p id="exchangeRate" class="exchange-rate">
+              1 CC = 0.0001 USD (Təxmini)
+            </p>
+            <p id="receivedAmountLabel" class="balance-label">
+              Alacağınız məbləğ:
+              <span id="receivedAmount" class="balance-amount text-xl"
+                >0.0000 USD</span
+              >
+            </p>
+            <button id="exchangeButton" class="exchange-button" disabled>
+              <span id="exchangeButtonText">Mübadilə Et</span>
+            </button>
+          </div>
+        </section>
+        <!-- Kartlar Bölməsi -->
+        <section id="cardsSection" class="content-section">
+          <h2 id="cardsTitle">Kartlar</h2>
+          <p id="cardsSubtitle">
+            Xüsusi bonuslar qazanmaq üçün kartları toplayın!
+          </p>
+          <div class="cards-grid">
+            <div class="card-item" data-card-id="flame_towers">
+              <div class="card-item-icon">
+                <img
+                  src="https://i.imgur.com/Oi8T7M3.png"
+                  alt="Alov Qüllələri"
+                />
+              </div>
+              <h3 id="flameTowersCardName" class="card-item-name">
+                Alov Qüllələri
+              </h3>
+              <p id="flameTowersBonus" class="card-item-bonus">
+                Klik gücünü +5% artırır.
+              </p>
+              <div class="card-item-level">Səviyyə: <span>0</span>/10</div>
+              <p class="card-item-cost">1000 CC</p>
+              <button class="card-item-button" id="cardItemButton_flame_towers">
+                Yüksəlt
+              </button>
+            </div>
+            <div class="card-item" data-card-id="heydar_aliyev_center">
+              <div class="card-item-icon">
+                <img
+                  src="https://i.imgur.com/NGU8hYa.png"
+                  alt="Heydər Əliyev Mərkəzi"
+                />
+              </div>
+              <h3 id="heydarAliyevCenterCardName" class="card-item-name">
+                Heydər Əliyev Mərkəzi
+              </h3>
+              <p id="heydarAliyevCenterBonus" class="card-item-bonus">
+                Avtomatik qazancı +10% artırır.
+              </p>
+              <div class="card-item-level">Səviyyə: <span>0</span>/10</div>
+              <p class="card-item-cost">2500 CC</p>
+              <button
+                class="card-item-button"
+                id="cardItemButton_heydar_aliyev_center"
+              >
+                Yüksəlt
+              </button>
+            </div>
+            <div class="card-item" data-card-id="maiden_tower">
+              <div class="card-item-icon">
+                <img src="https://i.imgur.com/j431h8w.jpeg" alt="Qız Qalası" />
+              </div>
+              <h3 id="maidenTowerCardName" class="card-item-name">
+                Qız Qalası
+              </h3>
+              <p id="maidenTowerBonus" class="card-item-bonus">
+                Bonus qazancını +20% artırır.
+              </p>
+              <div class="card-item-level">Səviyyə: <span>0</span>/10</div>
+              <p class="card-item-cost">5000 CC</p>
+              <button class="card-item-button" id="cardItemButton_maiden_tower">
+                Yüksəlt
+              </button>
+            </div>
+            <!-- YENİ KARTLAR BURADAN BAŞLAYIR -->
+            <div class="card-item" data-card-id="carpet_museum">
+              <div class="card-item-icon">
+                <img
+                  src="https://i.imgur.com/Gk2RtBl.jpeg"
+                  alt="Xalça Muzeyi"
+                />
+              </div>
+              <h3 id="carpetMuseumCardName" class="card-item-name">
+                Xalça Muzeyi
+              </h3>
+              <p id="carpetMuseumBonus" class="card-item-bonus">
+                Bonus qazancını +25% artırır.
+              </p>
+              <div class="card-item-level">Səviyyə: <span>0</span>/10</div>
+              <p class="card-item-cost">7500 CC</p>
+              <button
+                class="card-item-button"
+                id="cardItemButton_carpet_museum"
+              >
+                Yüksəlt
+              </button>
+            </div>
+            <div class="card-item" data-card-id="shaki_khans_palace">
+              <div class="card-item-icon">
+                <img
+                  src="https://i.imgur.com/k7CY1DH.jpeg"
+                  alt="Şəki Xan Sarayı"
+                />
+              </div>
+              <h3 id="shakiKhansPalaceCardName" class="card-item-name">
+                Şəki Xan Sarayı
+              </h3>
+              <p id="shakiKhansPalaceBonus" class="card-item-bonus">
+                Avtomatik qazancı +15% artırır.
+              </p>
+              <div class="card-item-level">Səviyyə: <span>0</span>/10</div>
+              <p class="card-item-cost">12000 CC</p>
+              <button
+                class="card-item-button"
+                id="cardItemButton_shaki_khans_palace"
+              >
+                Yüksəlt
+              </button>
+            </div>
+            <div class="card-item" data-card-id="crystal_hall">
+              <div class="card-item-icon">
+                <img
+                  src="https://i.imgur.com/voPENvQ.jpeg"
+                  alt="Baku Crystal Hall"
+                />
+              </div>
+              <h3 id="crystalHallCardName" class="card-item-name">
+                Baku Crystal Hall
+              </h3>
+              <p id="crystalHallBonus" class="card-item-bonus">
+                Hər klik gücünü +10% artırır.
+              </p>
+              <div class="card-item-level">Səviyyə: <span>0</span>/10</div>
+              <p class="card-item-cost">20000 CC</p>
+              <button class="card-item-button" id="cardItemButton_crystal_hall">
+                Yüksəlt
+              </button>
+            </div>
+            <div class="card-item" data-card-id="icherisheher">
+              <div class="card-item-icon">
+                <img src="https://i.imgur.com/XFOITfC.jpeg" alt="İçərişəhər" />
+              </div>
+              <h3 id="icherisheherCardName" class="card-item-name">
+                İçərişəhər
+              </h3>
+              <p id="icherisheherBonus" class="card-item-bonus">
+                Avtomatik qazancı +25% artırır.
+              </p>
+              <div class="card-item-level">Səviyyə: <span>0</span>/10</div>
+              <p class="card-item-cost">50000 CC</p>
+              <button class="card-item-button" id="cardItemButton_icherisheher">
+                Yüksəlt
+              </button>
+            </div>
+            <!-- YENİ KARTLAR BURADA BİTİR -->
+          </div>
+        </section>
+        <!-- Tənzimləmələr Bölməsi -->
+        <section id="settingsSection" class="content-section">
+          <h2 id="settingsTitle">Tənzimləmələr</h2>
+          <p id="settingsSubtitle">Tətbiq parametrlərini idarə edin.</p>
+          <div class="settings-group">
+            <label for="walletAddress" id="walletAddressLabel"
+              >Cüzdan Ünvanınız:</label
+            >
+            <input
+              type="text"
+              id="walletAddress"
+              placeholder="Cüzdan ünvanınızı daxil edin"
+            />
+            <label for="languageSelect" id="languageLabel">Dil:</label>
+            <select id="languageSelect">
+              <option value="az">Azərbaycanca</option>
+              <option value="en">English</option>
+              <option value="ru">Русский</option>
+              <option value="tr">Türkçe</option>
+            </select>
+          </div>
+          <div class="wallet-info">
+            <p id="connectedWalletBalanceLabel" class="balance-label">
+              Bağlı Cüzdan Balansı:
+            </p>
+            <p id="connectedWalletBalance" class="balance-amount">0.0000 USD</p>
+            <button id="saveSettings" class="action-button upgrade-button">
+              <span id="saveSettingsButtonText">Yadda Saxla</span>
+            </button>
+          </div>
+        </section>
+        <!-- İstifadəçi ID Göstəricisi -->
+        <div class="user-id-display">
+          <p>
+            <span id="userIdDisplayPrefix">İstifadəçi ID:</span>
+            <span id="displayUserId">Yüklənir...</span>
+          </p>
+        </div>
+        <!-- Firebase Status Göstəricisi -->
+        <div id="firebaseStatus">
+          <span id="firebaseStatusPrefix">Firebase Status:</span>
+          <span id="firebaseStatusText">Yüklənir...</span>
+        </div>
+      </div>
+    </div>
+    <!-- Naviqasiya Paneli -->
+    <nav class="navbar">
+      <button class="nav-button active" data-section="home">
+        <i class="fas fa-home"></i>
+        <span id="homeNav">Əsas</span>
+      </button>
+      <button class="nav-button" data-section="tasks">
+        <i class="fas fa-tasks"></i>
+        <span id="tasksNav">Tapşırıqlar</span>
+      </button>
+      <button class="nav-button" data-section="referral">
+        <i class="fas fa-user-friends"></i>
+        <span id="referralNav">Dəvət Et</span>
+      </button>
+      <button class="nav-button" data-section="shop">
+        <i class="fas fa-store"></i>
+        <span id="shopNav">Mağaza</span>
+      </button>
+      <button class="nav-button" data-section="exchange">
+        <i class="fas fa-exchange-alt"></i>
+        <span id="exchangeNav">Mübadilə</span>
+      </button>
+      <button class="nav-button" data-section="cards">
+        <i class="fas fa-id-card"></i>
+        <span id="cardsNav">Kartlar</span>
+      </button>
+    </nav>
+    <!-- Ümumi mesajlar üçün Modal -->
+    <div id="messageModal" class="modal">
+      <div class="modal-content">
+        <h3 id="modalTitle" class="modal-title">Mesaj</h3>
+        <p id="modalMessage" class="modal-message"></p>
+        <button id="modalClose" class="modal-close">
+          <span id="modalCloseButtonText">Bağla</span>
+        </button>
+      </div>
+    </div>
+    <!-- Profil üçün Modal -->
+    <div id="profileModal" class="modal">
+      <div class="modal-content">
+        <h3 id="profileModalTitle" class="modal-title">Profil</h3>
+        <div class="profile-content">
+          <div class="profile-avatar">
+            <img src="https://i.imgur.com/qmQbsDq.png" alt="Profil İkonu" />
+          </div>
+          <div class="profile-name-container">
+            <p id="profileUserName" class="profile-name"></p>
+            <input
+              type="text"
+              id="profileNameInput"
+              class="name-edit-input hidden"
+              placeholder="Adınızı daxil edin"
+            />
+            <button id="editNameButton" class="edit-name-button">
+              <i class="fas fa-pencil-alt"></i>
+            </button>
+            <button id="saveNameButton" class="save-name-button hidden">
+              Yadda Saxla
+            </button>
+          </div>
+          <p id="profileUserLevel" class="profile-level">Səviyyə 1</p>
+          <div class="progress-bar-container">
+            <div id="profileLevelProgressBar" class="progress-bar"></div>
+          </div>
+          <p id="profileLevelProgressText" class="progress-text">
+            0 / 1000 CC (0%)
+          </p>
+          <div class="profile-stats">
+            <div class="stat-row">
+              <span id="profileTotalMinedLabel">Ümumi Mədən Edilən:</span>
+              <span id="profileTotalMined" class="stat-value">0 CC</span>
+            </div>
+            <div class="stat-row">
+              <span id="profileTimeSpentLabel">Oyunda Keçirilən Vaxt:</span>
+              <span id="profileTimeSpent" class="stat-value">00:00:00</span>
+            </div>
+          </div>
+        </div>
+        <button id="profileModalClose" class="modal-close mt-4">
+          <span id="profileModalCloseButtonText">Bağla</span>
+        </button>
+      </div>
+    </div>
+    <!-- Toast Bildirişi -->
+    <div id="toastNotification" class="toast-notification"></div>
+
+    <!-- PLEXUS FON ANİMASİYASI KODU -->
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const canvas = document.getElementById("background-canvas");
+        if (!canvas) {
+          console.error("Canvas elementi tapılmadı!");
+          return;
+        }
+        const ctx = canvas.getContext("2d");
+        let particles = [];
+        const particleCount = 100; // Ekranda görünəcək hissəciklərin sayı
+
+        function resizeCanvas() {
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+        }
+
+        function createParticles() {
+          particles = [];
+          for (let i = 0; i < particleCount; i++) {
+            particles.push({
+              x: Math.random() * canvas.width,
+              y: Math.random() * canvas.height,
+              vx: (Math.random() - 0.5) * 0.3, // Hərəkət sürəti bir az azaldıldı
+              vy: (Math.random() - 0.5) * 0.3,
+              radius: Math.random() * 1.5 + 0.5, // Hissəciklər bir az kiçildildi
+            });
+          }
+        }
+
+        function animate() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          particles.forEach((p) => {
+            p.x += p.vx;
+            p.y += p.vy;
+
+            if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+            if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+            ctx.fill();
+          });
+
+          ctx.strokeStyle = "rgba(0, 209, 255, 0.08)"; // Xətt rəngi fona uyğunlaşdırıldı
+          for (let i = 0; i < particles.length; i++) {
+            for (let j = i + 1; j < particles.length; j++) {
+              const dx = particles[i].x - particles[j].x;
+              const dy = particles[i].y - particles[j].y;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+
+              if (distance < 120) {
+                // Məsafə bir az artırıldı
+                ctx.beginPath();
+                ctx.moveTo(particles[i].x, particles[i].y);
+                ctx.lineTo(particles[j].x, particles[j].y);
+                ctx.lineWidth = 0.5; // Xətlər nazikləşdirildi
+                ctx.stroke();
+              }
+            }
+          }
+
+          requestAnimationFrame(animate);
+        }
+
+        window.addEventListener("resize", () => {
+          resizeCanvas();
+          createParticles();
+        });
+
+        resizeCanvas();
+        createParticles();
+        animate();
+      });
+    </script>
+
+    <script type="module">
+      // Firebase imports
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+      import {
+        getAuth,
+        signInAnonymously,
+        signInWithCustomToken,
+        onAuthStateChanged,
+      } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+      import {
+        getFirestore,
+        doc,
+        getDoc,
+        setDoc,
+        updateDoc,
+        onSnapshot,
+        collection,
+        query,
+        where,
+        addDoc,
+        getDocs,
+      } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+      // Global variables for Firebase configuration and app ID
+      // IMPORTANT: Bu appId dəyərini Firebase Konsolunuzdan (Project settings -> Your apps -> Web app) götürdüyünüz real App ID ilə əvəz edin.
+      const appId = "1:928955887149:web:ca48d0237c5cecde7ed2a4"; // Sizin real Firebase App ID-niz
+
+      // User provided Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyBvwTDK6ic8birLTwq8gbSkmicp3BY7hI4",
+        authDomain: "caspiancoin-40126.firebaseapp.com",
+        databaseURL: "https://caspiancoin-40126-default-rtdb.firebaseio.com",
+        projectId: "caspiancoin-40126",
+        storageBucket: "caspiancoin-40126.firebasestorage.app",
+        messagingSenderId: "928955887149",
+        appId: "1:928955887149:web:ca48d0237c5cecde7ed2a4",
+        measurementId: "G-K7CSWBETQB",
+      };
+      const initialAuthToken =
+        typeof __initial_auth_token !== "undefined"
+          ? __initial_auth_token
+          : null;
+      let app;
+      let db;
+      let auth;
+      let userId = null;
+      let isAuthReady = false;
+      let loadingTimeout = null; // To store the timeout ID for loading screen
+      // Global game state variables - Declared once
+      let balance = 0;
+      let clickPower = 1;
+      let totalEarned = 0;
+      let autoMineRate = 0; // CC per second
+      let energy = 1000;
+      let maxEnergy = 1000;
+      let energyRegenRate = 0.05; // Energy per second - UPDATED FROM 0.5 to 0.05
+      let lastEnergyRegenTime = Date.now();
+      let autoMinerInterval = null;
+      let bonusActive = false;
+      let bonusMultiplier = 1;
+      let bonusTimer = null;
+      let doubleClickPowerTimer = null;
+      let doubleClickPowerActive = false;
+      const BONUS_COOLDOWN = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
+      // Constants for click power upgrade
+      const BASE_CLICK_POWER_UPGRADE_COST = 500; // Artırılmış ilkin qiymət
+      const CLICK_POWER_COST_INCREMENT = 200; // Artırılmış qiymət artımı
+      const MAX_CLICK_POWER_UPGRADES = 49; // Klik gücü 1-dən başlayıb 50-yə çatması üçün 49 yüksəltmə lazımdır
+      // Leveling system thresholds (total CC required to reach each level)
+      const LEVEL_THRESHOLDS = (function () {
+        const thresholds = [0, 20000, 100000]; // Level 1, Level 2, Level 3
+        let currentThreshold = 100000;
+        let currentIncrement = 80000; // Increment from L2 to L3
+        const incrementGrowthFactor = 1.2; // How much the increment grows each level
+        for (let i = 3; i < 20; i++) {
+          // Calculate up to Level 20 (index 19)
+          currentIncrement = Math.round(
+            currentIncrement * incrementGrowthFactor
+          );
+          currentThreshold += currentIncrement;
+          thresholds.push(currentThreshold);
+        }
+        thresholds.push(Infinity); // For Level 21 (beyond max level)
+        return thresholds;
+      })();
+      const MAX_LEVEL = LEVEL_THRESHOLDS.length - 1; // Max level is 20, so array index is 19
+      // Global user data structure - Declared once
+      let userData = {
+        balance: 0,
+        clickPower: 1,
+        totalEarned: 0,
+        autoMineRate: 0,
+        energy: 1000,
+        maxEnergy: 1000,
+        completedTasks: {},
+        purchasedShopItems: {}, // Now stores level numbers instead of true/false
+        purchasedCards: {}, // Now stores level numbers instead of true/false
+        referralCode: "",
+        referredBy: "",
+        totalReferrals: 0,
+        referralBonusEarned: 0,
+        walletAddress: "",
+        language: "az",
+        lastLogin: Date.now(),
+        lastEnergyRegenTime: Date.now(),
+        firstMineDone: false,
+        lastBonusClaimTime: 0, // New field for bonus cooldown
+        clickPowerUpgradesCount: 0, // New field to track upgrades
+        level: 1, // New: User's current level
+        timeSpentSeconds: 0, // New: Total time spent in game in seconds
+        userName: "", // New: User's customizable name
+      };
+      let sessionStartTime = Date.now(); // To track time spent in current session
+      // UI elements - Declared globally, initialized in DOMContentLoaded
+      let elements = {};
+      // Localization data
+      const translations = {
+        az: {
+          appName: "CaspianCoin Miner",
+          subtitle: "Kriptovalyuta qazanın!",
+          balanceLabel: "Balansınız",
+          mineButtonText: "Mədən Et",
+          clickPowerLabel: "Klik Gücü",
+          totalEarnedLabel: "Ümumi Qazanılan",
+          increaseClickPowerButtonText: `Klik gücünü artır ({cost} CC)`,
+          increaseClickPowerButtonMaxLevel: "Maks. Səviyyə",
+          bonusButtonText: "Bonus Qazan",
+          tasksTitle: "Tapşırıqlar",
+          tasksSubtitle: "Tapşırıqları tamamlayaraq əlavə CaspianCoin qazanın.",
+          taskJoinTelegram: "Telegram Kanalına Qoşul",
+          taskFollowTwitter: "Twitter-də Bizi İzlə",
+          taskJoinYoutube: "YouTube Kanalına Abunə Ol",
+          taskFollowTiktok: "TikTok-da Bizi İzlə",
+          taskCompleted: "Tamamlandı",
+          taskJoinButton: "Qoşul",
+          taskFollowButton: "İzlə",
+          taskSubscribeButton: "Abunə Ol",
+          taskDoButton: "Et",
+          referralTitle: "Dostlarını Dəvət Et",
+          referralSubtitle:
+            "Dostlarınızı dəvət edin və onların qazancından bonus əldə edin!",
+          referralCodeLabel: "Dəvət Kodunuz:",
+          copyCodeButtonText: "Kodu Kopyala",
+          totalReferralsLabel: "Dəvət Edilənlər",
+          referralBonusLabel: "Dəvət Bonusu",
+          shopTitle: "Mağaza",
+          shopSubtitle: "Mədən gücünüzü artırmaq üçün təkmilləşdirmələr alın.",
+          powerUpgrade1Name: "Güc Təkmilləşdirməsi I",
+          powerUpgrade1Desc: "Klik başına qazancı 1 CC artırır.",
+          autoMiner1Name: "Avtomatik Mədənçi I",
+          autoMiner1Desc: "Saniyədə 0.1 CC avtomatik qazanır.",
+          energyBoost1Name: "Enerji Artırıcı I",
+          energyBoost1Desc: "Enerji limitini 1000 artırır.",
+          speedBooster1Name: "Sürət Gücləndiricisi I",
+          speedBooster1Desc: "Avtomatik mədənçilik sürətini 1.5x artırır.",
+          protectionShield1Name: "Mühafizə Qalxanı I",
+          protectionShield1Desc: "30 saniyəlik klik gücünü ikiqat artırır.",
+          rareCrate1Name: "Nadir Sandıq",
+          rareCrate1Desc:
+            "Təsadüfi miqdarda CaspianCoin qazanın (500-2000 CC).",
+          level: "Səviyyə",
+          maxLevel: "Maksimum",
+          upgrade: "Yüksəlt",
+          buyButton: "Yüksəlt",
+          exchangeTitle: "Mübadilə",
+          exchangeSubtitle: "CaspianCoin-lərinizi digər valyutalara çevirin.",
+          exchangePlaceholder: "Məbləğ daxil edin",
+          exchangeRate: "1 CC = 0.0001 USD (Təxmini)",
+          receivedAmountLabel: "Alacağınız məbləğ:",
+          exchangeButtonText: "Mübadilə Et",
+          cardsTitle: "Kartlar",
+          cardsSubtitle: "Xüsusi bonuslar qazanmaq üçün kartları toplayın!",
+          flameTowersCardName: "Alov Qüllələri",
+          flameTowersBonus: "Klik gücünü +5% artırır.",
+          heydarAliyevCenterCardName: "Heydər Əliyev Mərkəzi",
+          heydarAliyevCenterBonus: "Avtomatik qazancı +10% artırır.",
+          maidenTowerCardName: "Qız Qalası",
+          maidenTowerBonus: "Bonus qazancını +20% artırır.",
+          carpetMuseumCardName: "Xalça Muzeyi",
+          carpetMuseumBonus: "Bonus qazancını +25% artırır.",
+          shakiKhansPalaceCardName: "Şəki Xan Sarayı",
+          shakiKhansPalaceBonus: "Avtomatik qazancı +15% artırır.",
+          crystalHallCardName: "Baku Crystal Hall",
+          crystalHallBonus: "Hər klik gücünü +10% artırır.",
+          icherisheherCardName: "İçərişəhər",
+          icherisheherBonus: "Avtomatik qazancı +25% artırır.",
+          settingsTitle: "Tənzimləmələr",
+          settingsSubtitle: "Tətbiq parametrlərini idarə edin.",
+          walletAddressLabel: "Cüzdan Ünvanınız:",
+          languageLabel: "Dil:",
+          connectedWalletBalanceLabel: "Bağlı Cüzdan Balansı:",
+          saveSettingsButtonText: "Yadda Saxla",
+          userIdDisplayPrefix: "İstifadəçi ID:",
+          firebaseStatusPrefix: "Firebase Status:",
+          homeNav: "Əsas",
+          tasksNav: "Tapşırıqlar",
+          referralNav: "Dəvət Et",
+          shopNav: "Mağaza",
+          exchangeNav: "Mübadilə",
+          cardsNav: "Kartlar",
+          modalTitle: "Mesaj",
+          modalCloseButtonText: "Bağla",
+          loadingText: "Yüklənir...",
+          toastCopied: "Kopyalandı!",
+          toastInsufficientFunds: "Kifayət qədər balans yoxdur!",
+          toastPurchased: "Uğurla alındı!",
+          toastTaskCompleted: "Tapşırıq tamamlandı! Bonus qazanıldı!",
+          toastExchangeSuccess: "Mübadilə uğurla həyata keçirildi!",
+          toastSettingsSaved: "Tənzimləmələr yadda saxlandı!",
+          toastBonusClaimed: "Bonus qazanıldı!",
+          toastBonusNotReady: "Bonus hələ hazır deyil!",
+          toastEnergyLow: "Enerji azdır! Gözləyin və ya enerji artırıcı alın.",
+          toastDoubleClickPowerActive: "İkiqat klik gücü aktivdir!",
+          toastRareCrateOpened: "Nadir Sandıq açıldı! {amount} CC qazandınız!",
+          bonusReadyIn:
+            "Bonus {hours}s {minutes}d {seconds}s sonra hazır olacaq",
+          loadingError:
+            "Yükləmə xətası: Tətbiq yüklənə bilmədi. Zəhmət olmasa, yenidən cəhd edin.",
+          profileTitle: "Profil",
+          profileUserNameDefault: "İstifadəçi",
+          profileUserLevel: "Səviyyə {level}",
+          profileLevelProgressText:
+            "{currentCC} / {nextLevelCC} CC ({percentage}%)",
+          profileTotalMinedLabel: "Ümumi Mədən Edilən:",
+          profileTimeSpentLabel: "Oyunda Keçirilən Vaxt:",
+          profileLevelUp: "Təbrik edirik! Siz {level} səviyyəsinə yüksəldiniz!",
+          profileModalCloseButtonText: "Bağla",
+          profileNameSaved: "Ad uğurla saxlandı!",
+          profileNameTooShort: "Ad ən azı 3 simvol olmalıdır.",
+        },
+        en: {
+          appName: "CaspianCoin Miner",
+          subtitle: "Earn cryptocurrency!",
+          balanceLabel: "Your Balance",
+          mineButtonText: "Mine",
+          clickPowerLabel: "Click Power",
+          totalEarnedLabel: "Total Earned",
+          increaseClickPowerButtonText: `Increase Click Power ({cost} CC)`,
+          increaseClickPowerButtonMaxLevel: "Max Level",
+          bonusButtonText: "Claim Bonus",
+          tasksTitle: "Tasks",
+          tasksSubtitle: "Earn extra CaspianCoin by completing tasks.",
+          taskJoinTelegram: "Join Telegram Channel",
+          taskFollowTwitter: "Follow us on Twitter",
+          taskJoinYoutube: "Subscribe to YouTube",
+          taskFollowTiktok: "Follow us on TikTok",
+          taskCompleted: "Completed",
+          taskJoinButton: "Join",
+          taskFollowButton: "Follow",
+          taskSubscribeButton: "Subscribe",
+          taskDoButton: "Do",
+          referralTitle: "Invite Friends",
+          referralSubtitle:
+            "Invite your friends and get a bonus from their earnings!",
+          referralCodeLabel: "Your Referral Code:",
+          copyCodeButtonText: "Copy Code",
+          totalReferralsLabel: "Total Referrals",
+          referralBonusLabel: "Referral Bonus",
+          shopTitle: "Shop",
+          shopSubtitle: "Buy upgrades to increase your mining power.",
+          powerUpgrade1Name: "Power Upgrade I",
+          powerUpgrade1Desc: "Increases earnings per click by 1 CC.",
+          autoMiner1Name: "Auto Miner I",
+          autoMiner1Desc: "Automatically earns 0.1 CC per second.",
+          energyBoost1Name: "Energy Boost I",
+          energyBoost1Desc: "Increases energy limit by 1000.",
+          speedBooster1Name: "Speed Booster I",
+          speedBooster1Desc: "Increases auto-mining speed by 1.5x.",
+          protectionShield1Name: "Protection Shield I",
+          protectionShield1Desc: "Doubles click power for 30 seconds.",
+          rareCrate1Name: "Rare Crate",
+          rareCrate1Desc: "Get a random amount of CaspianCoin (500-2000 CC).",
+          level: "Level",
+          maxLevel: "Maximum",
+          upgrade: "Upgrade",
+          buyButton: "Upgrade",
+          exchangeTitle: "Exchange",
+          exchangeSubtitle: "Convert your CaspianCoins to other currencies.",
+          exchangePlaceholder: "Enter amount",
+          exchangeRate: "1 CC = 0.0001 USD (Approx.)",
+          receivedAmountLabel: "You will receive:",
+          exchangeButtonText: "Exchange",
+          cardsTitle: "Cards",
+          cardsSubtitle: "Collect cards to get special bonuses!",
+          flameTowersCardName: "Flame Towers",
+          flameTowersBonus: "Increases click power by +5%.",
+          heydarAliyevCenterCardName: "Heydar Aliyev Center",
+          heydarAliyevCenterBonus: "Increases auto earnings by +10%.",
+          maidenTowerCardName: "Maiden Tower",
+          maidenTowerBonus: "Increases bonus earnings by +20%.",
+          carpetMuseumCardName: "Carpet Museum",
+          carpetMuseumBonus: "Increases bonus earnings by +25%.",
+          shakiKhansPalaceCardName: "Shaki Khan's Palace",
+          shakiKhansPalaceBonus: "Increases auto earnings by +15%.",
+          crystalHallCardName: "Baku Crystal Hall",
+          crystalHallBonus: "Increases each click power by +10%.",
+          icherisheherCardName: "Icherisheher",
+          icherisheherBonus: "Increases auto earnings by +25%.",
+          settingsTitle: "Settings",
+          settingsSubtitle: "Manage your application settings.",
+          walletAddressLabel: "Your Wallet Address:",
+          languageLabel: "Language:",
+          connectedWalletBalanceLabel: "Connected Wallet Balance:",
+          saveSettingsButtonText: "Save",
+          userIdDisplayPrefix: "User ID:",
+          firebaseStatusPrefix: "Firebase Status:",
+          homeNav: "Home",
+          tasksNav: "Tasks",
+          referralNav: "Invite",
+          shopNav: "Shop",
+          exchangeNav: "Exchange",
+          cardsNav: "Cards",
+          modalTitle: "Message",
+          modalCloseButtonText: "Close",
+          loadingText: "Loading...",
+          toastCopied: "Copied!",
+          toastInsufficientFunds: "Insufficient funds!",
+          toastPurchased: "Successfully purchased!",
+          toastTaskCompleted: "Task completed! Bonus earned!",
+          toastExchangeSuccess: "Exchange successful!",
+          toastSettingsSaved: "Settings saved!",
+          toastBonusClaimed: "Bonus claimed!",
+          toastBonusNotReady: "Bonus not ready yet!",
+          toastEnergyLow: "Low energy! Wait or buy an energy boost.",
+          toastDoubleClickPowerActive: "Double click power active!",
+          toastRareCrateOpened: "Rare Crate opened! You earned {amount} CC!",
+          bonusReadyIn: "Bonus ready in {hours}h {minutes}m {seconds}s",
+          loadingError:
+            "Loading error: The application could not be loaded. Please try again.",
+          profileTitle: "Profile",
+          profileUserNameDefault: "User",
+          profileUserLevel: "Level {level}",
+          profileLevelProgressText:
+            "{currentCC} / {nextLevelCC} CC ({percentage}%)",
+          profileTotalMinedLabel: "Total Mined:",
+          profileTimeSpentLabel: "Time Spent in Game:",
+          profileLevelUp: "Congratulations! You have reached level {level}!",
+          profileModalCloseButtonText: "Close",
+          profileNameSaved: "Name saved successfully!",
+          profileNameTooShort: "Name must be at least 3 characters.",
+        },
+        ru: {
+          appName: "CaspianCoin Miner",
+          subtitle: "Зарабатывайте криптовалюту!",
+          balanceLabel: "Ваш баланс",
+          mineButtonText: "Майнить",
+          clickPowerLabel: "Сила клика",
+          totalEarnedLabel: "Всего заработано",
+          increaseClickPowerButtonText: `Увеличить силу клика ({cost} CC)`,
+          increaseClickPowerButtonMaxLevel: "Макс. уровень",
+          bonusButtonText: "Получить бонус",
+          tasksTitle: "Задания",
+          tasksSubtitle:
+            "Зарабатывайте дополнительные CaspianCoin, выполняя задания.",
+          taskJoinTelegram: "Присоединиться к каналу Telegram",
+          taskFollowTwitter: "Следите за нами в Twitter",
+          taskJoinYoutube: "Подписаться на YouTube",
+          taskFollowTiktok: "Следите за нами в TikTok",
+          taskCompleted: "Выполнено",
+          taskJoinButton: "Присоединиться",
+          taskFollowButton: "Следить",
+          taskSubscribeButton: "Подписаться",
+          taskDoButton: "Выполнить",
+          referralTitle: "Пригласить друзей",
+          referralSubtitle:
+            "Приглашайте друзей и получайте бонус от их заработка!",
+          referralCodeLabel: "Ваш реферальный код:",
+          copyCodeButtonText: "Копировать код",
+          totalReferralsLabel: "Всего рефералов",
+          referralBonusLabel: "Реферальный бонус",
+          shopTitle: "Магазин",
+          shopSubtitle:
+            "Покупайте улучшения, чтобы увеличить свою мощность майнинга.",
+          powerUpgrade1Name: "Улучшение мощности I",
+          powerUpgrade1Desc: "Увеличивает заработок за клик на 1 CC.",
+          autoMiner1Name: "Авто-майнер I",
+          autoMiner1Desc: "Автоматически зарабатывает 0.1 CC в секунду.",
+          energyBoost1Name: "Усилитель энергии I",
+          energyBoost1Desc: "Увеличивает лимит энергии на 1000.",
+          speedBooster1Name: "Ускоритель I",
+          speedBooster1Desc: "Увеличивает скорость авто-майнинга в 1.5 раза.",
+          protectionShield1Name: "Защитный щит I",
+          protectionShield1Desc: "Удваивает силу клика на 30 секунд.",
+          rareCrate1Name: "Редкий ящик",
+          rareCrate1Desc:
+            "Получите случайное количество CaspianCoin (500-2000 CC).",
+          level: "Уровень",
+          maxLevel: "Максимум",
+          upgrade: "Улучшить",
+          buyButton: "Улучшить",
+          exchangeTitle: "Обмен",
+          exchangeSubtitle: "Конвертируйте свои CaspianCoin в другие валюты.",
+          exchangePlaceholder: "Введите сумму",
+          exchangeRate: "1 CC = 0.0001 USD (Примерно)",
+          receivedAmountLabel: "Вы получите:",
+          exchangeButtonText: "Обменять",
+          cardsTitle: "Карты",
+          cardsSubtitle: "Собирайте карты, чтобы получать особые бонусы!",
+          flameTowersCardName: "Пламенные башни",
+          flameTowersBonus: "Увеличивает силу клика на +5%.",
+          heydarAliyevCenterCardName: "Центр Гейдара Алиева",
+          heydarAliyevCenterBonus: "Увеличивает авто-заработок на +10%.",
+          maidenTowerCardName: "Девичья башня",
+          maidenTowerBonus: "Увеличивает бонусный заработок на +20%.",
+          carpetMuseumCardName: "Музей ковра",
+          carpetMuseumBonus: "Увеличивает бонусный заработок на +25%.",
+          shakiKhansPalaceCardName: "Дворец шекинских ханов",
+          shakiKhansPalaceBonus: "Увеличивает авто-заработок на +15%.",
+          crystalHallCardName: "Baku Crystal Hall",
+          crystalHallBonus: "Увеличивает силу каждого клика на +10%.",
+          icherisheherCardName: "Ичеришехер",
+          icherisheherBonus: "Увеличивает авто-заработок на +25%.",
+          settingsTitle: "Настройки",
+          settingsSubtitle: "Управляйте настройками вашего приложения.",
+          walletAddressLabel: "Ваш адрес кошелька:",
+          languageLabel: "Язык:",
+          connectedWalletBalanceLabel: "Баланс подключенного кошелька:",
+          saveSettingsButtonText: "Сохранить",
+          userIdDisplayPrefix: "ID пользователя:",
+          firebaseStatusPrefix: "Статус Firebase:",
+          homeNav: "Главная",
+          tasksNav: "Задания",
+          referralNav: "Пригласить",
+          shopNav: "Магазин",
+          exchangeNav: "Обмен",
+          cardsNav: "Карты",
+          modalTitle: "Сообщение",
+          modalCloseButtonText: "Закрыть",
+          loadingText: "Загрузка...",
+          toastCopied: "Скопировано!",
+          toastInsufficientFunds: "Недостаточно средств!",
+          toastPurchased: "Успешно куплено!",
+          toastTaskCompleted: "Задание выполнено! Бонус получен!",
+          toastExchangeSuccess: "Обмен успешен!",
+          toastSettingsSaved: "Настройки сохранены!",
+          toastBonusClaimed: "Бонус получен!",
+          toastBonusNotReady: "Бонус еще не готов!",
+          toastEnergyLow:
+            "Мало энергии! Подождите или купите усилитель энергии.",
+          toastDoubleClickPowerActive: "Двойная сила клика активна!",
+          toastRareCrateOpened:
+            "Редкий ящик открыт! Вы заработали {amount} CC!",
+          bonusReadyIn:
+            "Бонус будет готов через {hours}ч {minutes}м {seconds}с",
+          loadingError:
+            "Ошибка загрузки: Не удалось загрузить приложение. Пожалуйста, попробуйте еще раз.",
+          profileTitle: "Профиль",
+          profileUserNameDefault: "Пользователь",
+          profileUserLevel: "Уровень {level}",
+          profileLevelProgressText:
+            "{currentCC} / {nextLevelCC} CC ({percentage}%)",
+          profileTotalMinedLabel: "Всего добыто:",
+          profileTimeSpentLabel: "Время в игре:",
+          profileLevelUp: "Поздравляем! Вы достигли {level} уровня!",
+          profileModalCloseButtonText: "Закрыть",
+          profileNameSaved: "Имя успешно сохранено!",
+          profileNameTooShort: "Имя должно содержать не менее 3 символов.",
+        },
+        tr: {
+          appName: "CaspianCoin Madencisi",
+          subtitle: "Kripto para kazanın!",
+          balanceLabel: "Bakiyeniz",
+          mineButtonText: "Kaz",
+          clickPowerLabel: "Tıklama Gücü",
+          totalEarnedLabel: "Toplam Kazanılan",
+          increaseClickPowerButtonText: `Tıklama gücünü artır ({cost} CC)`,
+          increaseClickPowerButtonMaxLevel: "Maks. Seviye",
+          bonusButtonText: "Bonus Al",
+          tasksTitle: "Görevler",
+          tasksSubtitle: "Görevleri tamamlayarak ekstra CaspianCoin kazanın.",
+          taskJoinTelegram: "Telegram Kanalına Katıl",
+          taskFollowTwitter: "Bizi Twitter'da takip et",
+          taskJoinYoutube: "YouTube'a Abone Ol",
+          taskFollowTiktok: "Bizi TikTok'ta takip et",
+          taskCompleted: "Tamamlandı",
+          taskJoinButton: "Katıl",
+          taskFollowButton: "Takip Et",
+          taskSubscribeButton: "Abone Ol",
+          taskDoButton: "Yap",
+          referralTitle: "Arkadaş Davet Et",
+          referralSubtitle:
+            "Arkadaşlarını davet et ve onların kazançlarından bonus kazan!",
+          referralCodeLabel: "Davet Kodunuz:",
+          copyCodeButtonText: "Kodu Kopyala",
+          totalReferralsLabel: "Toplam Davet",
+          referralBonusLabel: "Davet Bonusu",
+          shopTitle: "Mağaza",
+          shopSubtitle:
+            "Madencilik gücünüzü artırmak için yükseltmeler satın alın.",
+          powerUpgrade1Name: "Güç Yükseltmesi I",
+          powerUpgrade1Desc: "Tıklama başına kazancı 1 CC artırır.",
+          autoMiner1Name: "Otomatik Madenci I",
+          autoMiner1Desc: "Saniyede 0.1 CC otomatik olarak kazanır.",
+          energyBoost1Name: "Enerji Takviyesi I",
+          energyBoost1Desc: "Enerji limitini 1000 artırır.",
+          speedBooster1Name: "Hız Artırıcı I",
+          speedBooster1Desc: "Otomatik madencilik hızını 1.5 kat artırır.",
+          protectionShield1Name: "Koruma Kalkanı I",
+          protectionShield1Desc: "Tıklama gücünü 30 saniyeliğine ikiye katlar.",
+          rareCrate1Name: "Nadir Sandık",
+          rareCrate1Desc:
+            "Rastgele miktarda CaspianCoin kazanın (500-2000 CC).",
+          level: "Seviye",
+          maxLevel: "Maksimum",
+          upgrade: "Yükselt",
+          buyButton: "Yükselt",
+          exchangeTitle: "Borsa",
+          exchangeSubtitle:
+            "CaspianCoin'lerinizi diğer para birimlerine dönüştürün.",
+          exchangePlaceholder: "Miktarı girin",
+          exchangeRate: "1 CC = 0.0001 USD (Yaklaşık)",
+          receivedAmountLabel: "Alacağınız miktar:",
+          exchangeButtonText: "Değiştir",
+          cardsTitle: "Kartlar",
+          cardsSubtitle: "Özel bonuslar almak için kartları toplayın!",
+          flameTowersCardName: "Alev Kuleleri",
+          flameTowersBonus: "Tıklama gücünü +%5 artırır.",
+          heydarAliyevCenterCardName: "Haydar Aliyev Merkezi",
+          heydarAliyevCenterBonus: "Otomatik kazancı +%10 artırır.",
+          maidenTowerCardName: "Kız Kulesi",
+          maidenTowerBonus: "Bonus kazancını +%20 artırır.",
+          carpetMuseumCardName: "Halı Müzesi",
+          carpetMuseumBonus: "Bonus kazancını +%25 artırır.",
+          shakiKhansPalaceCardName: "Şeki Hanları Sarayı",
+          shakiKhansPalaceBonus: "Otomatik kazancı +%15 artırır.",
+          crystalHallCardName: "Baku Crystal Hall",
+          crystalHallBonus: "Her tıklama gücünü +%10 artırır.",
+          icherisheherCardName: "İçerişehir",
+          icherisheherBonus: "Otomatik kazancı +%25 artırır.",
+          settingsTitle: "Ayarlar",
+          settingsSubtitle: "Uygulama ayarlarınızı yönetin.",
+          walletAddressLabel: "Cüzdan Adresiniz:",
+          languageLabel: "Dil:",
+          connectedWalletBalanceLabel: "Bağlı Cüzdan Bakiyesi:",
+          saveSettingsButtonText: "Kaydet",
+          userIdDisplayPrefix: "Kullanıcı ID:",
+          firebaseStatusPrefix: "Firebase Durumu:",
+          homeNav: "Anasayfa",
+          tasksNav: "Görevler",
+          referralNav: "Davet Et",
+          shopNav: "Mağaza",
+          exchangeNav: "Borsa",
+          cardsNav: "Kartlar",
+          modalTitle: "Mesaj",
+          modalCloseButtonText: "Kapat",
+          loadingText: "Yükleniyor...",
+          toastCopied: "Kopyalandı!",
+          toastInsufficientFunds: "Yetersiz bakiye!",
+          toastPurchased: "Başarıyla satın alındı!",
+          toastTaskCompleted: "Görev tamamlandı! Bonus kazanıldı!",
+          toastExchangeSuccess: "Borsa işlemi başarılı!",
+          toastSettingsSaved: "Ayarlar kaydedildi!",
+          toastBonusClaimed: "Bonus alındı!",
+          toastBonusNotReady: "Bonus henüz hazır değil!",
+          toastEnergyLow:
+            "Enerji düşük! Bekleyin veya enerji takviyesi satın alın.",
+          toastDoubleClickPowerActive: "İki kat tıklama gücü aktif!",
+          toastRareCrateOpened: "Nadir Sandık açıldı! {amount} CC kazandınız!",
+          bonusReadyIn:
+            "Bonus {hours}s {minutes}d {seconds}s sonra hazır olacak",
+          loadingError:
+            "Yükleme hatası: Uygulama yüklenemedi. Lütfen tekrar deneyin.",
+          profileTitle: "Profil",
+          profileUserNameDefault: "Kullanıcı",
+          profileUserLevel: "Seviye {level}",
+          profileLevelProgressText:
+            "{currentCC} / {nextLevelCC} CC ({percentage}%)",
+          profileTotalMinedLabel: "Toplam Kazılan:",
+          profileTimeSpentLabel: "Oyunda Geçen Süre:",
+          profileLevelUp: "Tebrikler! {level}. seviyeye ulaştınız!",
+          profileModalCloseButtonText: "Kapat",
+          profileNameSaved: "İsim başarıyla kaydedildi!",
+          profileNameTooShort: "İsim en az 3 karakter olmalıdır.",
+        },
+      };
+      // Shop items configuration with level system
+      const shopItems = {
+        power_upgrade_1: {
+          baseCost: 500, // Artırılmış ilkin qiymət
+          costMultiplier: 1.6,
+          effectMultiplier: 1,
+          maxLevel: 10,
+          effect: (level) => {
+            clickPower += level * 1;
+            userData.clickPower = clickPower;
+            updateUI();
+            showToast(
+              `${
+                translations[userData.language].powerUpgrade1Name
+              } səviyyə ${level}-ə yüksəldildi!`
+            );
+          },
+          nameKey: "powerUpgrade1Name",
+          descKey: "powerUpgrade1Desc",
+        },
+        auto_miner_1: {
+          baseCost: 2000, // Artırılmış ilkin qiymət
+          costMultiplier: 1.7,
+          effectMultiplier: 0.1,
+          maxLevel: 10,
+          effect: (level) => {
+            autoMineRate += level * 0.1;
+            userData.autoMineRate = autoMineRate;
+            startAutoMiner();
+            updateUI();
+            showToast(
+              `${
+                translations[userData.language].autoMiner1Name
+              } səviyyə ${level}-ə yüksəldildi!`
+            );
+          },
+          nameKey: "autoMiner1Name",
+          descKey: "autoMiner1Desc",
+        },
+        energy_boost_1: {
+          baseCost: 1000, // Artırılmış ilkin qiymət
+          costMultiplier: 1.8,
+          effectMultiplier: 1000,
+          maxLevel: 10,
+          effect: (level) => {
+            maxEnergy += level * 1000;
+            energy = maxEnergy;
+            userData.maxEnergy = maxEnergy;
+            userData.energy = energy;
+            updateUI();
+            showToast(
+              `${
+                translations[userData.language].energyBoost1Name
+              } səviyyə ${level}-ə yüksəldildi!`
+            );
+          },
+          nameKey: "energyBoost1Name",
+          descKey: "energyBoost1Desc",
+        },
+        speed_booster_1: {
+          baseCost: 3000, // Artırılmış ilkin qiymət
+          costMultiplier: 1.9,
+          effectMultiplier: 0.5,
+          maxLevel: 10,
+          effect: (level) => {
+            autoMineRate *= 1 + level * 0.5;
+            userData.autoMineRate = autoMineRate;
+            startAutoMiner();
+            updateUI();
+            showToast(
+              `${
+                translations[userData.language].speedBooster1Name
+              } səviyyə ${level}-ə yüksəldildi!`
+            );
+          },
+          nameKey: "speedBooster1Name",
+          descKey: "speedBooster1Desc",
+        },
+        protection_shield_1: {
+          baseCost: 6000, // Artırılmış ilkin qiymət
+          costMultiplier: 2.0,
+          effectMultiplier: 30,
+          maxLevel: 10,
+          effect: (level) => {
+            if (!doubleClickPowerActive) {
+              doubleClickPowerActive = true;
+              bonusMultiplier = 2;
+              updateUI();
+              showToast(
+                translations[userData.language].toastDoubleClickPowerActive
+              );
+              doubleClickPowerTimer = setTimeout(() => {
+                bonusMultiplier = 1;
+                doubleClickPowerActive = false;
+                updateUI();
+              }, 30000 * level);
+            }
+          },
+          nameKey: "protectionShield1Name",
+          descKey: "protectionShield1Desc",
+        },
+        rare_crate_1: {
+          baseCost: 5000, // Artırılmış ilkin qiymət
+          costMultiplier: 2.1,
+          effectMultiplier: 1,
+          maxLevel: 10,
+          effect: (level) => {
+            const minReward = 500 * level;
+            const maxReward = 2000 * level;
+            const earned =
+              Math.floor(Math.random() * (maxReward - minReward + 1)) +
+              minReward;
+            balance += earned;
+            totalEarned += earned;
+            userData.balance = balance;
+            userData.totalEarned = totalEarned;
+            updateUI();
+            showToast(
+              translations[userData.language].toastRareCrateOpened.replace(
+                "{amount}",
+                earned
+              )
+            );
+          },
+          nameKey: "rareCrate1Name",
+          descKey: "rareCrate1Desc",
+        },
+      };
+      // Cards configuration with level system
+      const cards = {
+        flame_towers: {
+          baseCost: 5000, // Artırılmış qiymət
+          costMultiplier: 2.0,
+          effectMultiplier: 0.05,
+          maxLevel: 10,
+          type: "click_power",
+          nameKey: "flameTowersCardName",
+          bonusKey: "flameTowersBonus",
+          imgSrc: "https://i.imgur.com/Oi8T7M3.png",
+        },
+        heydar_aliyev_center: {
+          baseCost: 10000, // Artırılmış qiymət
+          costMultiplier: 2.1,
+          effectMultiplier: 0.1,
+          maxLevel: 10,
+          type: "auto_mine",
+          nameKey: "heydarAliyevCenterCardName",
+          bonusKey: "heydarAliyevCenterBonus",
+          imgSrc: "https://i.imgur.com/NGU8hYa.png",
+        },
+        maiden_tower: {
+          baseCost: 25000, // Artırılmış qiymət
+          costMultiplier: 2.2,
+          effectMultiplier: 0.2,
+          maxLevel: 10,
+          type: "bonus_earnings",
+          nameKey: "maidenTowerCardName",
+          bonusKey: "maidenTowerBonus",
+          imgSrc: "https://i.imgur.com/j431h8w.jpeg",
+        },
+        carpet_museum: {
+          baseCost: 40000, // Artırılmış qiymət
+          costMultiplier: 2.3,
+          effectMultiplier: 0.25,
+          maxLevel: 10,
+          type: "bonus_earnings",
+          nameKey: "carpetMuseumCardName",
+          bonusKey: "carpetMuseumBonus",
+          imgSrc: "https://i.imgur.com/Gk2RtBl.jpeg",
+        },
+        shaki_khans_palace: {
+          baseCost: 60000, // Artırılmış qiymət
+          costMultiplier: 2.4,
+          effectMultiplier: 0.15,
+          maxLevel: 10,
+          type: "auto_mine",
+          nameKey: "shakiKhansPalaceCardName",
+          bonusKey: "shakiKhansPalaceBonus",
+          imgSrc: "https://i.imgur.com/k7CY1DH.jpeg",
+        },
+        crystal_hall: {
+          baseCost: 100000, // Artırılmış qiymət
+          costMultiplier: 2.5,
+          effectMultiplier: 0.1,
+          maxLevel: 10,
+          type: "click_power",
+          nameKey: "crystalHallCardName",
+          bonusKey: "crystalHallBonus",
+          imgSrc: "https://i.imgur.com/voPENvQ.jpeg",
+        },
+        icherisheher: {
+          baseCost: 250000, // Artırılmış qiymət
+          costMultiplier: 2.6,
+          effectMultiplier: 0.25,
+          maxLevel: 10,
+          type: "auto_mine",
+          nameKey: "icherisheherCardName",
+          bonusKey: "icherisheherBonus",
+          imgSrc: "https://i.imgur.com/XFOITfC.jpeg",
+        },
+      };
+      // Tasks configuration
+      const tasks = {
+        join_telegram: {
+          reward: 50,
+          buttonId: "joinTelegramChannel",
+          textKey: "taskJoinTelegram",
+          action: () => {
+            window.Telegram.WebApp.openLink("https://t.me/caspian_coinn");
+          },
+          isExternal: true,
+        },
+        follow_twitter: {
+          reward: 75,
+          buttonId: "followTwitter",
+          textKey: "taskFollowTwitter",
+          action: () => {
+            window.open("https://x.com/CaspianCoinCC", "_blank");
+          },
+          isExternal: true,
+        },
+        join_youtube: {
+          reward: 100,
+          buttonId: "joinYoutubeChannel",
+          textKey: "taskJoinYoutube",
+          action: () => {
+            window.open("https://www.youtube.com/@caspiancoincc", "_blank");
+          },
+          isExternal: true,
+        },
+        follow_tiktok: {
+          reward: 100,
+          buttonId: "followTiktok",
+          textKey: "taskFollowTiktok",
+          action: () => {
+            window.open("https://www.tiktok.com/@aimusicsongaz", "_blank");
+          },
+          isExternal: true,
+        },
+        first_mine: {
+          reward: 20,
+          buttonId: "firstMineTask",
+          textKey: "taskFirstMine",
+          action: () => {},
+          isExternal: false,
+        },
+      };
+      let energyRegenIntervalId = null;
+      let bonusButtonIntervalId = null;
+      let timeSpentIntervalId = null;
+
+      /**
+       * Formats a number for display, using abbreviations for large numbers.
+       * Numbers less than 1000 are floored and formatted with locale-specific thousands separators.
+       * Numbers 1000 and above are abbreviated (K, M, B) and fixed to one decimal place,
+       * with trailing .0 removed if it's a whole number.
+       * @param {number} num - The number to format.
+       * @returns {string} The formatted number string.
+       */
+      function formatNumber(num) {
+        if (num >= 1000000000000) {
+          // Trillions
+          return (num / 1000000000000).toFixed(1).replace(/\.0$/, "") + "T";
+        }
+        if (num >= 1000000000) {
+          // Billions
+          return (num / 1000000000).toFixed(1).replace(/\.0$/, "") + "B";
+        }
+        if (num >= 1000000) {
+          // Millions
+          return (num / 1000000).toFixed(1).replace(/\.0$/, "") + "M";
+        }
+        if (num >= 1000) {
+          // Thousands
+          return (num / 1000).toFixed(1).replace(/\.0$/, "") + "K";
+        }
+        return Math.floor(num).toLocaleString("az-AZ"); // For numbers less than 1000, display as integer with locale-specific thousands separator
+      }
+
+      // --- Firebase Functions ---
+      async function initializeFirebase() {
+        console.log("Firebase ilkinləşdirilir...");
+        showLoading(translations[userData.language].loadingText);
+        try {
+          if (!firebaseConfig || !firebaseConfig.projectId) {
+            const errorMessage =
+              "Firebase konfiqurasiyasında 'projectId' təmin edilməyib. Zəhmət olmasa, Firebase konfiqurasiyanızı yoxlayın.";
+            console.error(errorMessage);
+            if (elements.firebaseStatusText) {
+              elements.firebaseStatusText.textContent = `Xəta: ${errorMessage}`;
+            }
+            showModal(translations[userData.language].modalTitle, errorMessage);
+            hideLoading();
+            return;
+          }
+          console.log("initializeApp çağırılır...");
+          app = initializeApp(firebaseConfig);
+          console.log("getFirestore çağırılır...");
+          db = getFirestore(app);
+          console.log("getAuth çağırılır...");
+          auth = getAuth(app);
+          if (elements.firebaseStatusText) {
+            elements.firebaseStatusText.textContent = "Bağlanır...";
+          }
+          console.log(
+            `Firestore sənəd yolu üçün istifadə olunan appId: ${appId}`
+          );
+          console.log("onAuthStateChanged dinləyicisi qurulur...");
+          onAuthStateChanged(auth, async (user) => {
+            if (user) {
+              console.log(
+                "onAuthStateChanged: İstifadəçi daxil oldu:",
+                user.uid
+              );
+              userId = user.uid;
+              if (elements.displayUserId)
+                elements.displayUserId.textContent = userId;
+              if (elements.firebaseStatusText)
+                elements.firebaseStatusText.textContent = "Bağlı";
+              isAuthReady = true;
+              console.log(
+                "Firebase istifadəçi autentifikasiyası uğurlu. İstifadəçi ID:",
+                userId
+              );
+              await loadUserData();
+              hideLoading();
+              Telegram.WebApp.ready();
+              Telegram.WebApp.expand();
+              if (!energyRegenIntervalId) {
+                energyRegenIntervalId = setInterval(regenerateEnergy, 1000);
+                console.log("Enerji regenerasiya intervalı başladı.");
+              }
+              if (!bonusButtonIntervalId) {
+                bonusButtonIntervalId = setInterval(
+                  updateBonusButtonState,
+                  1000
+                );
+                console.log("Bonus düyməsi yenilənmə intervalı başladı.");
+              }
+              if (!timeSpentIntervalId) {
+                timeSpentIntervalId = setInterval(updateTimeSpent, 1000);
+                console.log("Vaxt keçirmə intervalı başladı.");
+              }
+            } else {
+              console.log(
+                "onAuthStateChanged: İstifadəçi daxil deyil, anonim və ya token ilə daxil olmağa cəhd edilir."
+              );
+              if (initialAuthToken) {
+                console.log(
+                  "Xüsusi token mövcuddur, onunla daxil olmağa cəhd edilir."
+                );
+                try {
+                  await signInWithCustomToken(auth, initialAuthToken);
+                  console.log(
+                    "Xüsusi token ilə daxil oldu. onAuthStateChanged yenidən işə düşəcək."
+                  );
+                } catch (signInError) {
+                  console.error(
+                    "Xüsusi token ilə daxil olarkən xəta:",
+                    signInError
+                  );
+                  console.log(
+                    "Xüsusi token xətası səbəbindən anonim daxil olmağa cəhd edilir."
+                  );
+                  try {
+                    await signInAnonymously(auth);
+                    console.log(
+                      "Anonim daxil oldu. onAuthStateChanged yenidən işə düşəcək."
+                    );
+                  } catch (anonSignInError) {
+                    console.error(
+                      "Anonim daxil olarkən xəta:",
+                      anonSignInError
+                    );
+                    showModal(
+                      translations[userData.language].modalTitle,
+                      `Daxil olarkən xəta: ${anonSignInError.message}`
+                    );
+                    hideLoading();
+                  }
+                }
+              } else {
+                console.log(
+                  "Xüsusi token mövcud deyil, anonim daxil olmağa cəhd edilir."
+                );
+                try {
+                  await signInAnonymously(auth);
+                  console.log(
+                    "Firebase anonim daxil oldu. onAuthStateChanged yenidən işə düşəcək."
+                  );
+                } catch (anonSignInError) {
+                  console.error("Anonim daxil olarkən xəta:", anonSignInError);
+                  showModal(
+                    translations[userData.language].modalTitle,
+                    `Daxil olarkən xəta: ${anonSignInError.message}`
+                  );
+                  hideLoading();
+                }
+              }
+              if (elements.firebaseStatusText)
+                elements.firebaseStatusText.textContent = "Anonim";
+            }
+          });
+        } catch (error) {
+          console.error("Firebase başlatılırken xəta:", error);
+          if (elements.firebaseStatusText) {
+            elements.firebaseStatusText.textContent = `Xəta: ${error.message}`;
+          }
+          showModal(
+            translations[userData.language].modalTitle,
+            `Firebase başlatılırken xəta: ${error.message}`
+          );
+          hideLoading();
+        }
+      }
+      async function loadUserData() {
+        if (!userId) {
+          console.warn(
+            "loadUserData: İstifadəçi ID-si yoxdur. Məlumatlar yüklənməyəcək."
+          );
+          hideLoading();
+          return;
+        }
+        if (!isAuthReady) {
+          console.warn(
+            "loadUserData: Autentifikasiya hələ hazır deyil. Məlumatlar yüklənməyəcək."
+          );
+          hideLoading();
+          return;
+        }
+        console.log(
+          `İstifadəçi məlumatları yüklənir... İstifadəçi ID: ${userId}`
+        );
+        showLoading(translations[userData.language].loadingText);
+        try {
+          const userDocRef = doc(
+            db,
+            `artifacts/${appId}/users/${userId}/user_data`,
+            "profile"
+          );
+          console.log(`Firestore sənədi çəkilir: ${userDocRef.path}`);
+          const docSnap = await getDoc(userDocRef);
+          if (docSnap.exists()) {
+            console.log("loadUserData: İstifadəçi məlumatları tapıldı.");
+            const data = docSnap.data();
+            userData = { ...userData, ...data };
+            balance = userData.balance;
+            clickPower = userData.clickPower;
+            totalEarned = userData.totalEarned;
+            autoMineRate = userData.autoMineRate;
+            energy = userData.energy;
+            maxEnergy = userData.maxEnergy;
+            lastEnergyRegenTime = userData.lastEnergyRegenTime || Date.now();
+            userData.lastBonusClaimTime = userData.lastBonusClaimTime || 0;
+            userData.clickPowerUpgradesCount =
+              userData.clickPowerUpgradesCount || 0;
+            userData.level = userData.level || 1;
+            userData.timeSpentSeconds = userData.timeSpentSeconds || 0;
+            userData.userName =
+              userData.userName ||
+              translations[userData.language].profileUserNameDefault;
+            if (elements.walletAddressInput)
+              elements.walletAddressInput.value = userData.walletAddress || "";
+            if (elements.languageSelect)
+              elements.languageSelect.value = userData.language || "az";
+            for (const itemId in userData.purchasedShopItems) {
+              if (userData.purchasedShopItems[itemId] && shopItems[itemId]) {
+                const item = shopItems[itemId];
+                const level = userData.purchasedShopItems[itemId];
+                if (item.nameKey === "powerUpgrade1Name") {
+                  clickPower += level * item.effectMultiplier;
+                } else if (item.nameKey === "autoMiner1Name") {
+                  autoMineRate += level * item.effectMultiplier;
+                } else if (item.nameKey === "energyBoost1Name") {
+                  maxEnergy += level * item.effectMultiplier;
+                  energy = maxEnergy;
+                }
+              }
+            }
+            for (const cardId in userData.purchasedCards) {
+              if (userData.purchasedCards[cardId] && cards[cardId]) {
+                const card = cards[cardId];
+                const level = userData.purchasedCards[cardId];
+                if (card.type === "click_power") {
+                  clickPower += clickPower * (card.effectMultiplier * level);
+                } else if (card.type === "auto_mine") {
+                  autoMineRate +=
+                    autoMineRate * (card.effectMultiplier * level);
+                }
+              }
+            }
+            const now = Date.now();
+            const timeElapsed = (now - lastEnergyRegenTime) / 1000;
+            const regeneratedEnergy = timeElapsed * energyRegenRate;
+            energy = Math.min(maxEnergy, energy + regeneratedEnergy);
+            userData.energy = energy;
+            userData.lastEnergyRegenTime = now;
+            startAutoMiner();
+            applyLanguage(userData.language);
+            updateUI();
+            updateBonusButtonState();
+            console.log(
+              "İstifadəçi məlumatları uğurla yükləndi və UI yeniləndi."
+            );
+          } else {
+            console.log(
+              "loadUserData: Yeni istifadəçi. İlkin məlumatlar saxlanılır."
+            );
+            userData.userName =
+              translations[userData.language].profileUserNameDefault;
+            await saveUserData();
+            applyLanguage(userData.language);
+            updateUI();
+            updateBonusButtonState();
+          }
+        } catch (error) {
+          console.error("İstifadəçi məlumatları yüklənərkən xəta:", error);
+          if (error.code === "permission-denied") {
+            showModal(
+              translations[userData.language].modalTitle,
+              `Məlumatlar yüklənərkən icazə xətası: Firebase Firestore qaydalarınızı yoxlayın. Xəta: ${error.message}`
+            );
+          } else {
+            showModal(
+              translations[userData.language].modalTitle,
+              `Məlumatlar yüklənərkən xəta: ${error.message}`
+            );
+          }
+        } finally {
+          hideLoading();
+        }
+      }
+      async function saveUserData() {
+        if (!userId) {
+          console.warn(
+            "saveUserData: İstifadəçi ID-si yoxdur, məlumatlar saxlanıla bilməz."
+          );
+          return;
+        }
+        console.log("İstifadəçi məlumatları saxlanılır...");
+        try {
+          const userDocRef = doc(
+            db,
+            `artifacts/${appId}/users/${userId}/user_data`,
+            "profile"
+          );
+          console.log(`Firestore sənədinə yazılır: ${userDocRef.path}`);
+          userData.balance = balance;
+          userData.clickPower = clickPower;
+          userData.totalEarned = totalEarned;
+          userData.autoMineRate = autoMineRate;
+          userData.energy = energy;
+          userData.maxEnergy = maxEnergy;
+          userData.lastLogin = Date.now();
+          userData.lastEnergyRegenTime = lastEnergyRegenTime;
+          userData.lastBonusClaimTime = userData.lastBonusClaimTime;
+          userData.clickPowerUpgradesCount = userData.clickPowerUpgradesCount;
+          userData.level = userData.level;
+          userData.timeSpentSeconds = userData.timeSpentSeconds;
+          await setDoc(userDocRef, userData, { merge: true });
+          console.log("İstifadəçi məlumatları uğurla saxlandı!");
+        } catch (error) {
+          console.error("İstifadəçi məlumatları saxlanarkən xəta:", error);
+          showModal(
+            translations[userData.language].modalTitle,
+            `Məlumatlar saxlanarkən xəta: ${error.message}`
+          );
+        }
+      }
+      async function updateReferralCount() {
+        if (!userId) return;
+        try {
+          const referralsCollectionRef = collection(
+            db,
+            `artifacts/${appId}/public/data/referrals`
+          );
+          console.log(
+            `Referral sayını çəkmək üçün Firestore yolu: ${referralsCollectionRef.path}`
+          );
+          const q = query(
+            referralsCollectionRef,
+            where("referredBy", "==", userId)
+          );
+          const querySnapshot = await getDocs(q);
+          userData.totalReferrals = querySnapshot.size;
+          updateUI();
+        } catch (error) {
+          console.error("Referral sayını yeniləyərkən xəta:", error);
+        }
+      }
+      // --- UI Update Functions ---
+      function getClickPowerUpgradeCost() {
+        return (
+          BASE_CLICK_POWER_UPGRADE_COST +
+          userData.clickPowerUpgradesCount * CLICK_POWER_COST_INCREMENT
+        );
+      }
+      function updateUI() {
+        if (
+          !elements.balanceAmount ||
+          !elements.clickPowerDisplay ||
+          !elements.totalEarnedDisplay
+        ) {
+          console.warn(
+            "updateUI: Critical UI elements are not yet initialized. Skipping UI update."
+          );
+          return;
+        }
+        elements.balanceAmount.textContent = formatNumber(balance);
+        elements.clickPowerDisplay.textContent = `${formatNumber(
+          clickPower
+        )} CC/klik`;
+        elements.totalEarnedDisplay.textContent = `${formatNumber(
+          totalEarned
+        )} CC`;
+
+        if (elements.energyBarFill && elements.energyText) {
+          const energyPercentage = (energy / maxEnergy) * 100;
+          elements.energyBarFill.style.width = `${energyPercentage}%`;
+          elements.energyText.textContent = `${Math.floor(
+            energy
+          )} / ${maxEnergy}`;
+        }
+        if (elements.referralCodeDisplay)
+          elements.referralCodeDisplay.textContent =
+            userData.referralCode ||
+            translations[userData.language].loadingText;
+        if (elements.totalReferralsDisplay)
+          elements.totalReferralsDisplay.textContent = userData.totalReferrals;
+        if (elements.referralBonusDisplay)
+          elements.referralBonusDisplay.textContent = `${formatNumber(
+            userData.referralBonusEarned
+          )} CC`;
+        if (elements.exchangeAmountInput)
+          elements.exchangeAmountInput.placeholder =
+            translations[userData.language].exchangePlaceholder;
+        if (elements.exchangeRate)
+          elements.exchangeRate.textContent =
+            translations[userData.language].exchangeRate;
+        if (elements.receivedAmountDisplay)
+          elements.receivedAmountDisplay.textContent = `${(
+            parseFloat(elements.exchangeAmountInput.value || 0) * 0.0001
+          ).toFixed(4)} USD`;
+        if (elements.walletAddressInput)
+          elements.walletAddressInput.value = userData.walletAddress;
+        if (elements.languageSelect)
+          elements.languageSelect.value = userData.language;
+        if (elements.connectedWalletBalance)
+          elements.connectedWalletBalance.textContent = `0.0000 USD`;
+        document.querySelectorAll(".shop-item").forEach((item, index) => {
+          const itemId = item.dataset.itemId;
+          const button = item.querySelector(".shop-item-button");
+          const levelDisplay = item.querySelector(".shop-item-level span");
+          const costDisplay = item.querySelector(".shop-item-cost");
+          const shopItem = shopItems[itemId];
+          const currentLevel = userData.purchasedShopItems[itemId] || 0;
+
+          if (levelDisplay) levelDisplay.textContent = currentLevel;
+          if (costDisplay) {
+            if (currentLevel >= shopItem.maxLevel) {
+              costDisplay.textContent = "";
+            } else {
+              const nextLevel = currentLevel + 1;
+              const cost = Math.floor(
+                shopItem.baseCost *
+                  Math.pow(shopItem.costMultiplier, currentLevel)
+              );
+              costDisplay.textContent = `${formatNumber(cost)} CC`;
+            }
+          }
+          if (button) {
+            if (currentLevel >= shopItem.maxLevel) {
+              button.disabled = true;
+              button.textContent = translations[userData.language].maxLevel;
+            } else {
+              const nextLevel = currentLevel + 1;
+              const cost = Math.floor(
+                shopItem.baseCost *
+                  Math.pow(shopItem.costMultiplier, currentLevel)
+              );
+              button.disabled = balance < cost;
+              button.textContent = translations[userData.language].upgrade;
+
+              // Mağaza əşyalarının ardıcıllıqla alınması məntiqi
+              if (index > 0) {
+                const prevItemId = Object.keys(shopItems)[index - 1];
+                const prevItemLevel = userData.purchasedShopItems[prevItemId] || 0;
+                if (prevItemLevel < shopItems[prevItemId].maxLevel) {
+                  button.disabled = true; // Əvvəlki əşya maksimum səviyyədə deyilsə, bu əşyanı almaq mümkün deyil
+                }
+              }
+            }
+          }
+        });
+        document.querySelectorAll(".card-item").forEach((item, index) => {
+          const cardId = item.dataset.cardId;
+          const button = item.querySelector(".card-item-button");
+          const levelDisplay = item.querySelector(".card-item-level span");
+          const costDisplay = item.querySelector(".card-item-cost");
+          const card = cards[cardId];
+          const currentLevel = userData.purchasedCards[cardId] || 0;
+
+          if (levelDisplay) levelDisplay.textContent = currentLevel;
+          if (costDisplay) {
+            if (currentLevel >= card.maxLevel) {
+              costDisplay.textContent = "";
+            } else {
+              const nextLevel = currentLevel + 1;
+              const cost = Math.floor(
+                card.baseCost * Math.pow(card.costMultiplier, currentLevel)
+              );
+              costDisplay.textContent = `${formatNumber(cost)} CC`;
+            }
+          }
+          if (button) {
+            if (currentLevel >= card.maxLevel) {
+              button.disabled = true;
+              button.textContent = translations[userData.language].maxLevel;
+            } else {
+              const nextLevel = currentLevel + 1;
+              const cost = Math.floor(
+                card.baseCost * Math.pow(card.costMultiplier, currentLevel)
+              );
+              button.disabled = balance < cost;
+              button.textContent = translations[userData.language].upgrade;
+
+              // Kartların ardıcıllıqla alınması məntiqi
+              if (index > 0) {
+                const prevCardId = Object.keys(cards)[index - 1];
+                const prevCardLevel = userData.purchasedCards[prevCardId] || 0;
+                if (prevCardLevel < cards[prevCardId].maxLevel) {
+                  button.disabled = true; // Əvvəlki kart maksimum səviyyədə deyilsə, bu kartı almaq mümkün deyil
+                }
+              }
+            }
+          }
+        });
+        for (const taskId in tasks) {
+          const task = tasks[taskId];
+          const button = document.getElementById(task.buttonId);
+          if (button) {
+            if (userData.completedTasks[taskId]) {
+              // If task is completed
+              button.disabled = true;
+              button.textContent =
+                translations[userData.language].taskCompleted;
+            } else {
+              // If task is not completed
+              button.disabled = false;
+              if (taskId === "join_telegram") {
+                button.textContent =
+                  translations[userData.language].taskJoinButton;
+              } else if (taskId === "follow_twitter") {
+                button.textContent =
+                  translations[userData.language].taskFollowButton;
+              } else if (taskId === "join_youtube") {
+                button.textContent =
+                  translations[userData.language].taskSubscribeButton;
+              } else if (taskId === "follow_tiktok") {
+                button.textContent =
+                  translations[userData.language].taskFollowButton;
+              } else if (taskId === "first_mine") {
+                button.textContent =
+                  translations[userData.language].taskDoButton;
+              } else {
+                button.textContent = translations[userData.language].upgrade; // Fallback
+              }
+            }
+          }
+        }
+        if (elements.mineButtonText) {
+          if (doubleClickPowerActive) {
+            if (!elements.mineButtonText.textContent.startsWith("2X ")) {
+              elements.mineButtonText.textContent =
+                "2X " + elements.mineButtonText.textContent;
+            }
+          } else {
+            if (elements.mineButtonText.textContent.startsWith("2X ")) {
+              elements.mineButtonText.textContent =
+                elements.mineButtonText.textContent.substring(3);
+            }
+          }
+        }
+        if (elements.increaseClickPowerButtonText) {
+          const currentUpgradeCost = getClickPowerUpgradeCost();
+          if (clickPower >= 50) { // Klik gücü maksimum 50-dir
+            elements.increaseClickPowerButtonText.textContent =
+              translations[userData.language].increaseClickPowerButtonMaxLevel;
+            elements.increaseClickPowerButton.disabled = true;
+          } else {
+            elements.increaseClickPowerButtonText.textContent = translations[
+              userData.language
+            ].increaseClickPowerButtonText.replace(
+              "{cost}",
+              formatNumber(currentUpgradeCost)
+            );
+            elements.increaseClickPowerButton.disabled =
+              balance < currentUpgradeCost;
+          }
+        }
+        if (elements.displayUserId)
+          elements.displayUserId.textContent =
+            userId || translations[userData.language].loadingText;
+        if (elements.profileLevelDisplay) {
+          elements.profileLevelDisplay.textContent = `LVL ${userData.level}`;
+        }
+        if (elements.profileUserName) {
+          elements.profileUserName.textContent =
+            userData.userName ||
+            translations[userData.language].profileUserNameDefault;
+        }
+        console.log(
+          "updateUI: Balans göstərildi:",
+          elements.balanceAmount.textContent
+        );
+      }
+      function applyLanguage(lang) {
+        const currentTranslations = translations[lang];
+        if (!currentTranslations) return;
+        if (!elements.appName) {
+          console.warn(
+            "applyLanguage: UI elementləri hələ ilkinləşdirilməyib. Dil tətbiqi atlanır."
+          );
+          return;
+        }
+        if (elements.appName)
+          elements.appName.textContent = currentTranslations.appName;
+        if (elements.subtitle)
+          elements.subtitle.textContent = currentTranslations.subtitle;
+        if (elements.balanceLabel)
+          elements.balanceLabel.textContent = currentTranslations.balanceLabel;
+        if (elements.clickPowerLabel)
+          elements.clickPowerLabel.textContent =
+            currentTranslations.clickPowerLabel;
+        if (elements.totalEarnedLabel)
+          elements.totalEarnedLabel.textContent =
+            currentTranslations.totalEarnedLabel;
+        if (document.getElementById("mineButtonText"))
+          document.getElementById("mineButtonText").textContent =
+            currentTranslations.mineButtonText;
+        if (document.getElementById("bonusButtonText"))
+          document.getElementById("bonusButtonText").textContent =
+            currentTranslations.bonusButtonText;
+        if (document.getElementById("copyCodeButtonText"))
+          document.getElementById("copyCodeButtonText").textContent =
+            currentTranslations.copyCodeButtonText;
+        if (document.getElementById("exchangeButtonText"))
+          document.getElementById("exchangeButtonText").textContent =
+            currentTranslations.exchangeButtonText;
+        if (document.getElementById("saveSettingsButtonText"))
+          document.getElementById("saveSettingsButtonText").textContent =
+            currentTranslations.saveSettingsButtonText;
+        if (document.getElementById("modalCloseButtonText"))
+          document.getElementById("modalCloseButtonText").textContent =
+            currentTranslations.modalCloseButtonText;
+        if (document.getElementById("profileModalCloseButtonText"))
+          document.getElementById("profileModalCloseButtonText").textContent =
+            currentTranslations.profileModalCloseButtonText;
+        if (document.getElementById("saveNameButton"))
+          document.getElementById("saveNameButton").textContent =
+            currentTranslations.saveSettingsButtonText;
+        if (document.getElementById("homeNav"))
+          document.getElementById("homeNav").textContent =
+            currentTranslations.homeNav;
+        if (document.getElementById("tasksNav"))
+          document.getElementById("tasksNav").textContent =
+            currentTranslations.tasksNav;
+        if (document.getElementById("referralNav"))
+          document.getElementById("referralNav").textContent =
+            currentTranslations.referralNav;
+        if (document.getElementById("shopNav"))
+          document.getElementById("shopNav").textContent =
+            currentTranslations.shopNav;
+        if (document.getElementById("exchangeNav"))
+          document.getElementById("exchangeNav").textContent =
+            currentTranslations.exchangeNav;
+        if (document.getElementById("cardsNav"))
+          document.getElementById("cardsNav").textContent =
+            currentTranslations.cardsNav;
+        if (elements.tasksTitle)
+          elements.tasksTitle.textContent = currentTranslations.tasksTitle;
+        if (elements.tasksSubtitle)
+          elements.tasksSubtitle.textContent =
+            currentTranslations.tasksSubtitle;
+        if (elements.referralTitle)
+          elements.referralTitle.textContent =
+            currentTranslations.referralTitle;
+        if (elements.referralSubtitle)
+          elements.referralSubtitle.textContent =
+            currentTranslations.referralSubtitle;
+        if (elements.shopTitle)
+          elements.shopTitle.textContent = currentTranslations.shopTitle;
+        if (elements.shopSubtitle)
+          elements.shopSubtitle.textContent = currentTranslations.shopSubtitle;
+        if (elements.exchangeTitle)
+          elements.exchangeTitle.textContent =
+            currentTranslations.exchangeTitle;
+        if (elements.exchangeSubtitle)
+          elements.exchangeSubtitle.textContent =
+            currentTranslations.exchangeSubtitle;
+        if (elements.cardsTitle)
+          elements.cardsTitle.textContent = currentTranslations.cardsTitle;
+        if (elements.cardsSubtitle)
+          elements.cardsSubtitle.textContent =
+            currentTranslations.cardsSubtitle;
+        if (elements.settingsTitle)
+          elements.settingsTitle.textContent =
+            currentTranslations.settingsTitle;
+        if (elements.settingsSubtitle)
+          elements.settingsSubtitle.textContent =
+            currentTranslations.settingsSubtitle;
+        if (elements.referralCodeLabel)
+          elements.referralCodeLabel.textContent =
+            currentTranslations.referralCodeLabel;
+        if (elements.totalReferralsLabel)
+          elements.totalReferralsLabel.textContent =
+            currentTranslations.totalReferralsLabel;
+        if (elements.referralBonusLabel)
+          elements.referralBonusLabel.textContent =
+            currentTranslations.referralBonusLabel;
+        if (elements.walletAddressLabel)
+          elements.walletAddressLabel.textContent =
+            currentTranslations.walletAddressLabel;
+        if (elements.languageLabel)
+          elements.languageLabel.textContent =
+            currentTranslations.languageLabel;
+        if (elements.connectedWalletBalanceLabel)
+          elements.connectedWalletBalanceLabel.textContent =
+            currentTranslations.connectedWalletBalanceLabel;
+        if (elements.exchangeAmountInput)
+          elements.exchangeAmountInput.placeholder =
+            currentTranslations.exchangePlaceholder;
+        if (elements.exchangeRate)
+          elements.exchangeRate.textContent = currentTranslations.exchangeRate;
+        if (elements.receivedAmountLabel)
+          elements.receivedAmountLabel.textContent =
+            currentTranslations.receivedAmountLabel;
+        if (elements.userIdDisplayPrefix)
+          elements.userIdDisplayPrefix.textContent =
+            currentTranslations.userIdDisplayPrefix;
+        if (elements.firebaseStatusPrefix)
+          elements.firebaseStatusPrefix.textContent =
+            currentTranslations.firebaseStatusPrefix;
+        if (elements.modalTitle)
+          elements.modalTitle.textContent = currentTranslations.modalTitle;
+        if (elements.loadingText)
+          elements.loadingText.textContent = currentTranslations.loadingText;
+        if (elements.profileModalTitle)
+          elements.profileModalTitle.textContent =
+            currentTranslations.profileTitle;
+        if (elements.profileTotalMinedLabel)
+          elements.profileTotalMinedLabel.textContent =
+            currentTranslations.profileTotalMinedLabel;
+        if (elements.profileTimeSpentLabel)
+          elements.profileTimeSpentLabel.textContent =
+            currentTranslations.profileTimeSpentLabel;
+        if (elements.profileNameInput)
+          elements.profileNameInput.placeholder =
+            currentTranslations.profileUserNameDefault;
+        const taskJoinTelegram = document.getElementById("taskJoinTelegram");
+        if (taskJoinTelegram)
+          taskJoinTelegram.innerHTML = `<i class="fab fa-telegram-plane"></i> ${currentTranslations.taskJoinTelegram}`;
+        const taskFollowTwitter = document.getElementById("taskFollowTwitter");
+        if (taskFollowTwitter)
+          taskFollowTwitter.innerHTML = `<i class="fab fa-twitter"></i> ${currentTranslations.taskFollowTwitter}`;
+        const taskJoinYoutube = document.getElementById("taskJoinYoutube");
+        if (taskJoinYoutube)
+          taskJoinYoutube.innerHTML = `<i class="fab fa-youtube"></i> ${currentTranslations.taskJoinYoutube}`;
+        const taskFollowTiktok = document.getElementById("taskFollowTiktok");
+        if (taskFollowTiktok)
+          taskFollowTiktok.innerHTML = `<i class="fab fa-tiktok"></i> ${currentTranslations.taskFollowTiktok}`;
+        const taskFirstMine = document.getElementById("taskFirstMine");
+        if (taskFirstMine)
+          taskFirstMine.textContent = currentTranslations.taskFirstMine;
+        for (const itemId in shopItems) {
+          const item = shopItems[itemId];
+          const nameElement = document.getElementById(
+            `${itemId.replace(/_/g, "")}Name`
+          );
+          const descElement = document.getElementById(
+            `${itemId.replace(/_/g, "")}Desc`
+          );
+          if (nameElement)
+            nameElement.textContent = currentTranslations[item.nameKey];
+          if (descElement)
+            descElement.textContent = currentTranslations[item.descKey];
+        }
+        for (const cardId in cards) {
+          const card = cards[cardId];
+          const nameElement = document.getElementById(
+            `${cardId.replace(/_/g, "")}CardName`
+          );
+          const bonusElement = document.getElementById(
+            `${cardId.replace(/_/g, "")}Bonus`
+          );
+          if (nameElement)
+            nameElement.textContent = currentTranslations[card.nameKey];
+          if (bonusElement)
+            bonusElement.textContent = currentTranslations[card.bonusKey];
+        }
+        updateUI();
+      }
+      // --- Game Logic Functions ---
+      function mine(event) {
+        console.log(
+          "Mine funksiyası çağırıldı. Mədəndən əvvəlki balans:",
+          balance.toFixed(6)
+        );
+        if (energy <= 0) {
+          showToast(translations[userData.language].toastEnergyLow);
+          return;
+        }
+        const earned = clickPower * bonusMultiplier;
+        balance += earned;
+        totalEarned += earned;
+        energy -= 1;
+        console.log(
+          "Mədəndən sonra balans:",
+          balance.toFixed(6),
+          "Qazanılan:",
+          earned.toFixed(2)
+        );
+        if (!userData.firstMineDone) {
+          userData.firstMineDone = true;
+          completeTask("first_mine");
+        }
+        checkLevelUp();
+        updateUI();
+        saveUserData();
+        createCoinPopup(event.clientX, event.clientY, `+${earned.toFixed(2)}`);
+        createConfetti(event.clientX, event.clientY);
+      }
+      function startAutoMiner() {
+        if (autoMinerInterval) {
+          clearInterval(autoMinerInterval);
+        }
+        if (autoMineRate > 0) {
+          autoMinerInterval = setInterval(() => {
+            balance += autoMineRate;
+            totalEarned += autoMineRate;
+            checkLevelUp();
+            updateUI();
+            saveUserData();
+          }, 1000);
+          console.log("Avtomatik mədənçi başladı. Sürət:", autoMineRate);
+        } else {
+          console.log("Avtomatik mədənçi işləmir (sürət 0).");
+        }
+      }
+      function regenerateEnergy() {
+        const now = Date.now();
+        const timeElapsed = (now - lastEnergyRegenTime) / 1000;
+        const energyToRegen = timeElapsed * energyRegenRate;
+        energy = Math.min(maxEnergy, Math.floor(energy + energyToRegen));
+        lastEnergyRegenTime = now;
+        userData.energy = energy;
+        userData.lastEnergyRegenTime = lastEnergyRegenTime;
+        updateUI();
+      }
+      function updateTimeSpent() {
+        userData.timeSpentSeconds++;
+      }
+      function claimBonus() {
+        console.log(
+          "Bonus tələb edildi. Bonusdan əvvəlki balans:",
+          balance.toFixed(6)
+        );
+        const now = Date.now();
+        const timeSinceLastBonus = now - userData.lastBonusClaimTime;
+        if (timeSinceLastBonus < BONUS_COOLDOWN) {
+          showToast(translations[userData.language].toastBonusNotReady);
+          return;
+        }
+        const bonusAmount = 100;
+        let finalBonus = bonusAmount;
+        for (const cardId in userData.purchasedCards) {
+          if (
+            userData.purchasedCards[cardId] &&
+            cards[cardId] &&
+            cards[cardId].type === "bonus_earnings"
+          ) {
+            const level = userData.purchasedCards[cardId];
+            finalBonus +=
+              bonusAmount * (cards[cardId].effectMultiplier * level);
+          }
+        }
+        balance += finalBonus;
+        totalEarned += finalBonus;
+        userData.balance = balance;
+        userData.totalEarned = totalEarned;
+        userData.lastBonusClaimTime = now;
+        console.log(
+          "Bonusdan sonra balans:",
+          balance.toFixed(6),
+          "Qazanılan bonus:",
+          finalBonus.toFixed(2)
+        );
+        checkLevelUp();
+        updateUI();
+        saveUserData();
+        showToast(translations[userData.language].toastBonusClaimed);
+        updateBonusButtonState();
+      }
+      function updateBonusButtonState() {
+        if (
+          !elements.bonusButton ||
+          !elements.bonusButton.querySelector("span")
+        )
+          return;
+        const now = Date.now();
+        const timeSinceLastBonus = now - userData.lastBonusClaimTime;
+        const remainingTime = BONUS_COOLDOWN - timeSinceLastBonus;
+        if (remainingTime <= 0) {
+          elements.bonusButton.disabled = false;
+          elements.bonusButton.querySelector("span").textContent =
+            translations[userData.language].bonusButtonText;
+        } else {
+          elements.bonusButton.disabled = true;
+          const hours = Math.floor(remainingTime / (1000 * 60 * 60));
+          const minutes = Math.floor(
+            (remainingTime % (1000 * 60 * 60)) / (1000 * 60)
+          );
+          const seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
+          elements.bonusButton.querySelector("span").textContent = translations[
+            userData.language
+          ].bonusReadyIn
+            .replace("{hours}", hours)
+            .replace("{minutes}", minutes)
+            .replace("{seconds}", seconds);
+        }
+      }
+      function buyShopItem(itemId) {
+        console.log("Mağaza elementi alınır:", itemId);
+        const item = shopItems[itemId];
+        const currentLevel = userData.purchasedShopItems[itemId] || 0;
+
+        // Mağaza əşyalarının ardıcıllıqla alınması məntiqi
+        const itemIds = Object.keys(shopItems);
+        const currentIndex = itemIds.indexOf(itemId);
+
+        if (currentIndex > 0) {
+          const prevItemId = itemIds[currentIndex - 1];
+          const prevItemLevel = userData.purchasedShopItems[prevItemId] || 0;
+          if (prevItemLevel < shopItems[prevItemId].maxLevel) {
+            showToast(
+              `Əvvəlki əşyanı (${
+                translations[userData.language][shopItems[prevItemId].nameKey]
+              }) maksimum səviyyəyə çatdırın.`
+            );
+            return;
+          }
+        }
+
+        if (currentLevel >= item.maxLevel) {
+          showToast("Bu əşya artıq maksimum səviyyədədir!");
+          return;
+        }
+
+        const nextLevel = currentLevel + 1;
+        const cost = Math.floor(
+          item.baseCost * Math.pow(item.costMultiplier, currentLevel)
+        );
+
+        if (balance >= cost) {
+          balance -= cost;
+          userData.balance = balance;
+          userData.purchasedShopItems[itemId] = nextLevel;
+          item.effect(nextLevel);
+          saveUserData();
+        } else {
+          showToast(translations[userData.language].toastInsufficientFunds);
+        }
+      }
+      function completeTask(taskId) {
+        console.log("Tapşırıq tamamlandı:", taskId);
+        const task = tasks[taskId];
+        if (!userData.completedTasks[taskId]) {
+          balance += task.reward;
+          totalEarned += task.reward;
+          userData.balance = balance;
+          userData.totalEarned = totalEarned;
+          userData.completedTasks[taskId] = true;
+          saveUserData();
+          updateUI();
+          showToast(translations[userData.language].toastTaskCompleted);
+          checkLevelUp();
+        }
+      }
+      function buyCard(cardId) {
+        console.log("Kart alınır:", cardId);
+        const card = cards[cardId];
+        const currentLevel = userData.purchasedCards[cardId] || 0;
+
+        // Check if the previous card is maxed out before allowing purchase of the current card
+        const cardIds = Object.keys(cards);
+        const currentIndex = cardIds.indexOf(cardId);
+
+        if (currentIndex > 0) {
+          const prevCardId = cardIds[currentIndex - 1];
+          const prevCardLevel = userData.purchasedCards[prevCardId] || 0;
+          if (prevCardLevel < cards[prevCardId].maxLevel) {
+            showToast(
+              `Əvvəlki kartı (${
+                translations[userData.language][cards[prevCardId].nameKey]
+              }) maksimum səviyyəyə çatdırın.`
+            );
+            return;
+          }
+        }
+
+        if (currentLevel >= card.maxLevel) {
+          showToast("Bu kart artıq maksimum səviyyədədir!");
+          return;
+        }
+
+        const nextLevel = currentLevel + 1;
+        const cost = Math.floor(
+          card.baseCost * Math.pow(card.costMultiplier, currentLevel)
+        );
+
+        if (balance >= cost) {
+          balance -= cost;
+          userData.balance = balance;
+          userData.purchasedCards[cardId] = nextLevel;
+
+          if (card.type === "click_power") {
+            clickPower += clickPower * (card.effectMultiplier * nextLevel);
+            userData.clickPower = clickPower;
+          } else if (card.type === "auto_mine") {
+            autoMineRate += autoMineRate * (card.effectMultiplier * nextLevel);
+            userData.autoMineRate = autoMineRate;
+            startAutoMiner();
+          }
+
+          updateUI();
+          saveUserData();
+          showToast(
+            `${
+              translations[userData.language][card.nameKey]
+            } səviyyə ${nextLevel}-ə yüksəldildi!`
+          );
+        } else {
+          showToast(translations[userData.language].toastInsufficientFunds);
+        }
+      }
+      function exchangeCoins() {
+        console.log("Mübadilə edilir.");
+        const amount = parseFloat(elements.exchangeAmountInput.value);
+        if (isNaN(amount) || amount <= 0) {
+          showToast("Zəhmət olmasa etibarlı məbləğ daxil edin.");
+          return;
+        }
+        if (balance >= amount) {
+          balance -= amount;
+          const usdReceived = amount * 0.0001;
+          userData.balance = balance;
+          updateUI();
+          saveUserData();
+          showToast(translations[userData.language].toastExchangeSuccess);
+          elements.exchangeAmountInput.value = "";
+        } else {
+          showToast(translations[userData.language].toastInsufficientFunds);
+        }
+      }
+      function checkLevelUp() {
+        let newLevel = userData.level;
+        while (
+          newLevel < MAX_LEVEL &&
+          totalEarned >= LEVEL_THRESHOLDS[newLevel]
+        ) {
+          newLevel++;
+        }
+        if (newLevel > userData.level) {
+          userData.level = newLevel;
+          showLevelUpEffect(userData.level);
+          const levelBonus = newLevel * 50;
+          balance += levelBonus;
+          totalEarned += levelBonus;
+          showToast(
+            translations[userData.language].profileLevelUp.replace(
+              "{level}",
+              userData.level
+            )
+          );
+          updateUI();
+          saveUserData();
+        }
+      }
+      function formatTime(seconds) {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = Math.floor(seconds % 60);
+        return [h, m, s].map((v) => (v < 10 ? "0" + v : v)).join(":");
+      }
+      // --- Utility UI Functions ---
+      function showLoading(message) {
+        if (elements.loadingOverlay && elements.loadingText) {
+          elements.loadingText.textContent = message;
+          elements.loadingOverlay.classList.add("show");
+          console.log("Yükləmə ekranı göstərildi:", message);
+          if (loadingTimeout) {
+            clearTimeout(loadingTimeout);
+          }
+          loadingTimeout = setTimeout(() => {
+            if (elements.loadingOverlay.classList.contains("show")) {
+              console.warn("Yükləmə ekranı vaxt aşımı səbəbindən gizlədildi.");
+              hideLoading();
+              showModal(
+                translations[userData.language].modalTitle,
+                translations[userData.language].loadingError
+              );
+            }
+          }, 10000);
+        }
+      }
+      function hideLoading() {
+        if (elements.loadingOverlay) {
+          elements.loadingOverlay.classList.remove("show");
+          console.log("Yükləmə ekranı gizlədildi.");
+          if (loadingTimeout) {
+            clearTimeout(loadingTimeout);
+            loadingTimeout = null;
+          }
+        }
+      }
+      function showToast(message, duration = 3000) {
+        if (elements.toastNotification) {
+          elements.toastNotification.textContent = message;
+          elements.toastNotification.classList.add("show");
+          setTimeout(() => {
+            elements.toastNotification.classList.remove("show");
+          }, duration);
+          console.log("Toast göstərildi:", message);
+        }
+      }
+      function showModal(title, message) {
+        if (
+          elements.messageModal &&
+          elements.modalTitle &&
+          elements.modalMessage
+        ) {
+          elements.modalTitle.textContent = title;
+          elements.modalMessage.textContent = message;
+          elements.messageModal.classList.add("active");
+          console.log("Modal göstərildi:", title, message);
+        }
+      }
+      function hideModal() {
+        if (elements.messageModal && elements.modalMessage) {
+          elements.modalMessage.textContent = "";
+          elements.messageModal.classList.remove("active");
+          console.log("Modal gizlədildi.");
+        }
+        const currentActiveSection = document.querySelector(
+          ".content-section.active"
+        );
+        if (
+          currentActiveSection &&
+          currentActiveSection.id !== "settingsSection"
+        ) {
+          if (elements.settingsButtonHeader)
+            elements.settingsButtonHeader.style.display = "block";
+        }
+      }
+      function showProfileModal() {
+        if (!elements.profileModal) return;
+        if (elements.profileUserName) {
+          elements.profileUserName.textContent = userData.userName;
+          elements.profileUserName.classList.remove("hidden");
+        }
+        if (elements.profileNameInput) {
+          elements.profileNameInput.value = userData.userName;
+          elements.profileNameInput.classList.add("hidden");
+        }
+        if (elements.editNameButton)
+          elements.editNameButton.classList.remove("hidden");
+        if (elements.saveNameButton)
+          elements.saveNameButton.classList.add("hidden");
+        if (elements.profileUserLevel) {
+          elements.profileUserLevel.textContent = translations[
+            userData.language
+          ].profileUserLevel.replace("{level}", userData.level);
+        }
+        if (elements.profileTotalMined) {
+          elements.profileTotalMined.textContent = `${formatNumber(
+            totalEarned
+          )} CC`;
+        }
+        if (elements.profileTimeSpent) {
+          elements.profileTimeSpent.textContent = formatTime(
+            userData.timeSpentSeconds
+          );
+        }
+        if (
+          elements.profileLevelProgressBar &&
+          elements.profileLevelProgressText
+        ) {
+          const currentLevelIndex = userData.level - 1;
+          const nextLevelIndex = userData.level;
+          if (userData.level < MAX_LEVEL) {
+            const currentLevelThreshold = LEVEL_THRESHOLDS[currentLevelIndex];
+            const nextLevelThreshold = LEVEL_THRESHOLDS[nextLevelIndex];
+            const earnedInCurrentLevelSegment =
+              totalEarned - currentLevelThreshold;
+            const requiredForNextLevelSegment =
+              nextLevelThreshold - currentLevelThreshold;
+            let percentage = 0;
+            if (requiredForNextLevelSegment > 0) {
+              percentage =
+                (earnedInCurrentLevelSegment / requiredForNextLevelSegment) *
+                100;
+            }
+            percentage = Math.min(100, Math.max(0, percentage));
+            elements.profileLevelProgressBar.style.width = `${percentage}%`;
+            elements.profileLevelProgressText.textContent = translations[
+              userData.language
+            ].profileLevelProgressText
+              .replace(
+                "{currentCC}",
+                Math.floor(earnedInCurrentLevelSegment).toLocaleString("az-AZ")
+              )
+              .replace(
+                "{nextLevelCC}",
+                Math.floor(requiredForNextLevelSegment).toLocaleString("az-AZ")
+              )
+              .replace("{percentage}", percentage.toFixed(0));
+          } else {
+            elements.profileLevelProgressBar.style.width = "100%";
+            elements.profileLevelProgressText.textContent = translations[
+              userData.language
+            ].profileLevelProgressText
+              .replace("{currentCC}", formatNumber(totalEarned))
+              .replace("{nextLevelCC}", "MAX")
+              .replace("{percentage}", "100");
+          }
+        }
+        elements.profileModal.classList.add("active");
+        if (elements.settingsButtonHeader)
+          elements.settingsButtonHeader.style.display = "none";
+        if (elements.profileButtonHeader)
+          elements.profileButtonHeader.style.display = "none";
+      }
+      function hideProfileModal() {
+        if (elements.profileModal) {
+          elements.profileModal.classList.remove("active");
+        }
+        const currentActiveSection = document.querySelector(
+          ".content-section.active"
+        );
+        if (
+          currentActiveSection &&
+          currentActiveSection.id !== "settingsSection"
+        ) {
+          if (elements.settingsButtonHeader)
+            elements.settingsButtonHeader.style.display = "block";
+          if (elements.profileButtonHeader)
+            elements.profileButtonHeader.style.display = "flex";
+        }
+      }
+      function createCoinPopup(x, y, text) {
+        const popup = document.createElement("div");
+        popup.classList.add("coin-popup");
+        popup.textContent = text;
+        popup.style.left = `${x}px`;
+        popup.style.top = `${y}px`;
+        document.body.appendChild(popup);
+        popup.addEventListener("animationend", () => {
+          popup.remove();
+        });
+      }
+      function createConfetti(x, y) {
+        for (let i = 0; i < 5; i++) {
+          const confetti = document.createElement("div");
+          confetti.classList.add("confetti");
+          confetti.style.left = `${x + (Math.random() - 0.5) * 40}px`;
+          confetti.style.top = `${y + (Math.random() - 0.5) * 40}px`;
+          confetti.style.backgroundColor = `hsl(${
+            Math.random() * 360
+          }, 100%, 70%)`;
+          document.body.appendChild(confetti);
+          const angle = Math.random() * Math.PI * 2;
+          const velocity = Math.random() * 5 + 5;
+          const duration = Math.random() * 0.5 + 0.5;
+          confetti.animate(
+            [
+              { transform: `translate(0, 0)`, opacity: 1 },
+              {
+                transform: `translate(${Math.cos(angle) * velocity}px, ${
+                  Math.sin(angle) * velocity
+                }px) rotate(${Math.random() * 360}deg)`,
+                opacity: 0,
+              },
+            ],
+            {
+              duration: duration * 1000,
+              easing: "ease-out",
+              fill: "forwards",
+            }
+          ).onfinish = () => confetti.remove();
+        }
+      }
+      function showLevelUpEffect(level) {
+        const effect = document.createElement("div");
+        effect.className = "level-up-effect";
+        effect.innerHTML = `<div class="level-up-text">Səviyyə ${level}!</div>`;
+        document.body.appendChild(effect);
+
+        setTimeout(() => {
+          effect.remove();
+        }, 3000);
+      }
+      /* Köhnə generateParticles funksiyası silindi */
+
+      // --- Event Listeners ---
+      document.addEventListener("DOMContentLoaded", () => {
+        console.log("DOMContentLoaded hadisəsi işə düşdü.");
+        elements = {
+          loadingOverlay: document.getElementById("loadingOverlay"),
+          loadingText: document.getElementById("loadingText"),
+          balanceAmount: document.getElementById("balanceAmount"),
+          minerButton: document.getElementById("minerButton"),
+          mineButtonText: document.getElementById("mineButtonText"),
+          clickPowerDisplay: document.getElementById("clickPower"),
+          totalEarnedDisplay: document.getElementById("totalEarned"),
+          increaseClickPowerButton: document.getElementById(
+            "increaseClickPowerButton"
+          ),
+          increaseClickPowerButtonText: document.getElementById(
+            "increaseClickPowerButtonText"
+          ),
+          bonusButton: document.getElementById("bonusButton"),
+          bonusButtonText: document.getElementById("bonusButtonText"),
+          sections: document.querySelectorAll(".content-section"),
+          navButtons: document.querySelectorAll(".nav-button"),
+          messageModal: document.getElementById("messageModal"),
+          modalTitle: document.getElementById("modalTitle"),
+          modalMessage: document.getElementById("modalMessage"),
+          modalClose: document.getElementById("modalClose"),
+          toastNotification: document.getElementById("toastNotification"),
+          referralCodeDisplay: document.getElementById("referralCode"),
+          copyReferralCodeButton: document.getElementById("copyReferralCode"),
+          copyCodeButtonText: document.getElementById("copyCodeButtonText"),
+          totalReferralsDisplay: document.getElementById("totalReferrals"),
+          referralBonusDisplay: document.getElementById("referralBonus"),
+          exchangeAmountInput: document.getElementById("exchangeAmount"),
+          receivedAmountDisplay: document.getElementById("receivedAmount"),
+          exchangeButton: document.getElementById("exchangeButton"),
+          exchangeButtonText: document.getElementById("exchangeButtonText"),
+          walletAddressInput: document.getElementById("walletAddress"),
+          languageSelect: document.getElementById("languageSelect"),
+          saveSettingsButton: document.getElementById("saveSettings"),
+          saveSettingsButtonText: document.getElementById(
+            "saveSettingsButtonText"
+          ),
+          settingsButtonHeader: document.getElementById("settingsButtonHeader"),
+          displayUserId: document.getElementById("displayUserId"),
+          firebaseStatusText: document.getElementById("firebaseStatusText"),
+          firstMineTaskButton: document.getElementById("firstMineTask"),
+          joinTelegramChannelButton: document.getElementById(
+            "joinTelegramChannel"
+          ),
+          followTwitterButton: document.getElementById("followTwitter"),
+          joinYoutubeChannelButton:
+            document.getElementById("joinYoutubeChannel"),
+          followTiktokButton: document.getElementById("followTiktok"),
+          connectedWalletBalanceLabel: document.getElementById(
+            "connectedWalletBalanceLabel"
+          ),
+          connectedWalletBalance: document.getElementById(
+            "connectedWalletBalance"
+          ),
+          appName: document.getElementById("appName"),
+          subtitle: document.getElementById("subtitle"),
+          balanceLabel: document.getElementById("balanceLabel"),
+          clickPowerLabel: document.getElementById("clickPowerLabel"),
+          totalEarnedLabel: document.getElementById("totalEarnedLabel"),
+          tasksTitle: document.getElementById("tasksTitle"),
+          tasksSubtitle: document.getElementById("tasksSubtitle"),
+          taskJoinTelegram: document.getElementById("taskJoinTelegram"),
+          taskFollowTwitter: document.getElementById("taskFollowTwitter"),
+          taskJoinYoutube: document.getElementById("taskJoinYoutube"),
+          taskFollowTiktok: document.getElementById("taskFollowTiktok"),
+          taskFirstMine: document.getElementById("taskFirstMine"),
+          referralTitle: document.getElementById("referralTitle"),
+          referralSubtitle: document.getElementById("referralSubtitle"),
+          referralCodeLabel: document.getElementById("referralCodeLabel"),
+          totalReferralsLabel: document.getElementById("totalReferralsLabel"),
+          referralBonusLabel: document.getElementById("referralBonusLabel"),
+          shopTitle: document.getElementById("shopTitle"),
+          shopSubtitle: document.getElementById("shopSubtitle"),
+          exchangeTitle: document.getElementById("exchangeTitle"),
+          exchangeSubtitle: document.getElementById("exchangeSubtitle"),
+          exchangeRate: document.getElementById("exchangeRate"),
+          receivedAmountLabel: document.getElementById("receivedAmountLabel"),
+          cardsTitle: document.getElementById("cardsTitle"),
+          cardsSubtitle: document.getElementById("cardsSubtitle"),
+          settingsTitle: document.getElementById("settingsTitle"),
+          settingsSubtitle: document.getElementById("settingsSubtitle"),
+          walletAddressLabel: document.getElementById("walletAddressLabel"),
+          languageLabel: document.getElementById("languageLabel"),
+          connectedWalletBalanceLabel: document.getElementById(
+            "connectedWalletBalanceLabel"
+          ),
+          userIdDisplayPrefix: document.getElementById("userIdDisplayPrefix"),
+          firebaseStatusPrefix: document.getElementById("firebaseStatusPrefix"),
+          homeNav: document.getElementById("homeNav"),
+          tasksNav: document.getElementById("tasksNav"),
+          referralNav: document.getElementById("referralNav"),
+          shopNav: document.getElementById("shopNav"),
+          exchangeNav: document.getElementById("exchangeNav"),
+          cardsNav: document.getElementById("cardsNav"),
+          modalTitle: document.getElementById("modalTitle"),
+          modalCloseButtonText: document.getElementById("modalCloseButtonText"),
+          loadingText: document.getElementById("loadingText"),
+          profileButtonHeader: document.getElementById("profileButtonHeader"),
+          profileLevelDisplay: document.getElementById("profileLevelDisplay"),
+          profileModal: document.getElementById("profileModal"),
+          profileModalTitle: document.getElementById("profileModalTitle"),
+          profileUserName: document.getElementById("profileUserName"),
+          profileNameInput: document.getElementById("profileNameInput"),
+          editNameButton: document.getElementById("editNameButton"),
+          saveNameButton: document.getElementById("saveNameButton"),
+          profileUserLevel: document.getElementById("profileUserLevel"),
+          profileLevelProgressBar: document.getElementById(
+            "profileLevelProgressBar"
+          ),
+          profileLevelProgressText: document.getElementById(
+            "profileLevelProgressText"
+          ),
+          profileTotalMined: document.getElementById("profileTotalMined"),
+          profileTimeSpent: document.getElementById("profileTimeSpent"),
+          profileTotalMinedLabel: document.getElementById(
+            "profileTotalMinedLabel"
+          ),
+          profileTimeSpentLabel: document.getElementById(
+            "profileTimeSpentLabel"
+          ),
+          profileModalClose: document.getElementById("profileModalClose"),
+          profileModalCloseButtonText: document.getElementById(
+            "profileModalCloseButtonText"
+          ),
+          energyText: document.getElementById("energyText"),
+          energyBarFill: document.getElementById("energyBarFill"),
+        };
+        console.log("Elementlər ilkinləşdirildi:", elements);
+        initializeFirebase();
+        /* generateParticles(); // Bu funksiya artıq yeni fon skripti tərəfindən idarə olunur */
+        elements.navButtons.forEach((button) => {
+          button.addEventListener("click", () => {
+            console.log("Nav düyməsinə klikləndi:", button.dataset.section);
+            elements.navButtons.forEach((btn) =>
+              btn.classList.remove("active")
+            );
+            button.classList.add("active");
+            const targetSectionId = button.dataset.section + "Section";
+            elements.sections.forEach((section) => {
+              if (section.id === targetSectionId) {
+                section.classList.add("active");
+              } else {
+                section.classList.remove("active");
+              }
+            });
+            if (targetSectionId === "settingsSection") {
+              if (elements.settingsButtonHeader)
+                elements.settingsButtonHeader.style.display = "none";
+              if (elements.profileButtonHeader)
+                elements.profileButtonHeader.style.display = "none";
+            } else {
+              if (elements.settingsButtonHeader)
+                elements.settingsButtonHeader.style.display = "block";
+              if (elements.profileButtonHeader)
+                elements.profileButtonHeader.style.display = "flex";
+            }
+          });
+        });
+        console.log(
+          "Navigasiya düymələri üçün hadisə dinləyiciləri əlavə edildi."
+        );
+        if (elements.minerButton) {
+          elements.minerButton.addEventListener("pointerdown", (e) => {
+            console.log("Mədən düyməsinə basıldı.");
+            elements.minerButton.classList.add("active-press");
+            mine(e);
+          });
+          elements.minerButton.addEventListener("pointerup", () => {
+            elements.minerButton.classList.remove("active-press");
+          });
+          elements.minerButton.addEventListener("pointerleave", () => {
+            elements.minerButton.classList.remove("active-press");
+          });
+          console.log("Mədən düyməsi üçün hadisə dinləyiciləri əlavə edildi.");
+        } else {
+          console.error("Xəta: 'minerButton' elementi tapılmadı!");
+        }
+        if (elements.increaseClickPowerButton) {
+          elements.increaseClickPowerButton.addEventListener("click", () => {
+            const currentUpgradeCost = getClickPowerUpgradeCost();
+            const powerIncrease = 1;
+            if (clickPower >= 50) {
+              // Klik gücü maksimum 50-dir
+              showToast("Klik gücü maksimum səviyyədədir!");
+              return;
+            }
+            if (balance >= currentUpgradeCost) {
+              balance -= currentUpgradeCost;
+              clickPower += powerIncrease;
+              userData.balance = balance;
+              userData.clickPower = clickPower;
+              userData.clickPowerUpgradesCount++;
+              saveUserData();
+              updateUI();
+              showToast(translations[userData.language].toastPurchased);
+            } else {
+              showToast(translations[userData.language].toastInsufficientFunds);
+            }
+          });
+        }
+        document.querySelectorAll(".shop-item-button").forEach((button) => {
+          button.addEventListener("click", (e) => {
+            const itemId = e.target.closest(".shop-item").dataset.itemId;
+            buyShopItem(itemId);
+          });
+        });
+        console.log("Mağaza düymələri üçün hadisə dinləyiciləri əlavə edildi.");
+        document.querySelectorAll(".card-item-button").forEach((button) => {
+          button.addEventListener("click", (e) => {
+            const cardId = e.target.closest(".card-item").dataset.cardId;
+            buyCard(cardId);
+          });
+        });
+        console.log("Kart düymələri üçün hadisə dinləyiciləri əlavə edildi.");
+        if (elements.joinTelegramChannelButton) {
+          elements.joinTelegramChannelButton.addEventListener("click", () => {
+            tasks.join_telegram.action();
+            completeTask("join_telegram");
+          });
+        }
+        if (elements.followTwitterButton) {
+          elements.followTwitterButton.addEventListener("click", () => {
+            tasks.follow_twitter.action();
+            completeTask("follow_twitter");
+          });
+        }
+        if (elements.joinYoutubeChannelButton) {
+          elements.joinYoutubeChannelButton.addEventListener("click", () => {
+            tasks.join_youtube.action();
+            completeTask("join_youtube");
+          });
+        }
+        if (elements.followTiktokButton) {
+          elements.followTiktokButton.addEventListener("click", () => {
+            tasks.follow_tiktok.action();
+            completeTask("follow_tiktok");
+          });
+        }
+        console.log(
+          "Tapşırıq düymələri üçün hadisə dinləyiciləri əlavə edildi."
+        );
+        if (elements.copyReferralCodeButton) {
+          elements.copyReferralCodeButton.addEventListener("click", () => {
+            const referralCode = elements.referralCodeDisplay.textContent;
+            if (
+              referralCode &&
+              referralCode !== translations[userData.language].loadingText
+            ) {
+              const tempInput = document.createElement("textarea");
+              tempInput.value = referralCode;
+              document.body.appendChild(tempInput);
+              tempInput.select();
+              document.execCommand("copy");
+              document.body.removeChild(tempInput);
+              showToast(translations[userData.language].toastCopied);
+            }
+          });
+        }
+        console.log(
+          "Dəvət kodu kopyalama düyməsi üçün hadisə dinləyicisi əlavə edildi."
+        );
+        if (elements.exchangeAmountInput) {
+          elements.exchangeAmountInput.addEventListener("input", () => {
+            const amount = parseFloat(elements.exchangeAmountInput.value);
+            const usdReceived =
+              isNaN(amount) || amount <= 0 ? 0 : amount * 0.0001;
+            elements.receivedAmountDisplay.textContent = `${usdReceived.toFixed(
+              4
+            )} USD`;
+            elements.exchangeButton.disabled =
+              isNaN(amount) || amount <= 0 || balance < amount;
+          });
+        }
+        console.log(
+          "Mübadilə giriş düyməsi üçün hadisə dinləyicisi əlavə edildi."
+        );
+        if (elements.exchangeButton) {
+          elements.exchangeButton.addEventListener("click", exchangeCoins);
+        }
+        console.log("Mübadilə düyməsi üçün hadisə dinləyiciləri əlavə edildi.");
+        if (elements.settingsButtonHeader) {
+          elements.settingsButtonHeader.addEventListener("click", () => {
+            console.log("Başlıqdakı tənzimləmələr düyməsinə klikləndi.");
+            elements.navButtons.forEach((btn) =>
+              btn.classList.remove("active")
+            );
+            const settingsNavButton = document.querySelector(
+              '.nav-button[data-section="settings"]'
+            );
+            if (settingsNavButton) {
+              settingsNavButton.classList.add("active");
+            }
+            elements.sections.forEach((section) => {
+              if (section.id === "settingsSection") {
+                section.classList.add("active");
+              } else {
+                section.classList.remove("active");
+              }
+            });
+            elements.settingsButtonHeader.style.display = "none";
+            if (elements.profileButtonHeader)
+              elements.profileButtonHeader.style.display = "none";
+          });
+        }
+        console.log(
+          "Başlıqdakı tənzimləmələr düyməsi üçün hadisə dinləyicisi əlavə edildi."
+        );
+        if (elements.profileButtonHeader) {
+          elements.profileButtonHeader.addEventListener("click", () => {
+            console.log("Başlıqdakı profil düyməsinə klikləndi.");
+            showProfileModal();
+          });
+        }
+        console.log(
+          "Başlıqdakı profil düyməsi üçün hadisə dinləyicisi əlavə edildi."
+        );
+        if (elements.profileModalClose) {
+          elements.profileModalClose.addEventListener(
+            "click",
+            hideProfileModal
+          );
+        }
+        console.log(
+          "Profil modalını bağlama düyməsi üçün hadisə dinləyicisi əlavə edildi."
+        );
+        if (elements.editNameButton) {
+          elements.editNameButton.addEventListener("click", () => {
+            if (elements.profileUserName)
+              elements.profileUserName.classList.add("hidden");
+            if (elements.profileNameInput) {
+              elements.profileNameInput.value = userData.userName;
+              elements.profileNameInput.classList.remove("hidden");
+              elements.profileNameInput.focus();
+            }
+            if (elements.editNameButton)
+              elements.editNameButton.classList.add("hidden");
+            if (elements.saveNameButton)
+              elements.saveNameButton.classList.remove("hidden");
+          });
+        }
+        if (elements.saveNameButton) {
+          elements.saveNameButton.addEventListener("click", () => {
+            const newName = elements.profileNameInput.value.trim();
+            if (newName.length < 3) {
+              showToast(translations[userData.language].profileNameTooShort);
+              return;
+            }
+            userData.userName = newName;
+            saveUserData();
+            updateUI();
+            showToast(translations[userData.language].profileNameSaved);
+            if (elements.profileUserName)
+              elements.profileUserName.classList.remove("hidden");
+            if (elements.profileNameInput)
+              elements.profileNameInput.classList.add("hidden");
+            if (elements.editNameButton)
+              elements.editNameButton.classList.remove("hidden");
+            if (elements.saveNameButton)
+              elements.saveNameButton.classList.add("hidden");
+          });
+        }
+        if (elements.saveSettingsButton) {
+          elements.saveSettingsButton.addEventListener("click", () => {
+            console.log("Tənzimləmələr saxlanılır.");
+            userData.walletAddress = elements.walletAddressInput.value;
+            userData.language = elements.languageSelect.value;
+            applyLanguage(userData.language);
+            saveUserData();
+            showToast(translations[userData.language].toastSettingsSaved);
+          });
+        }
+        console.log(
+          "Tənzimləmələri yadda saxlamaq düyməsi üçün hadisə dinləyicisi əlavə edildi."
+        );
+        if (elements.languageSelect) {
+          elements.languageSelect.addEventListener("change", (e) => {
+            console.log("Dil dəyişdirildi:", e.target.value);
+            userData.language = e.target.value;
+            applyLanguage(userData.language);
+            saveUserData();
+          });
+        }
+        console.log("Dil seçimi üçün hadisə dinləyicisi əlavə edildi.");
+        if (elements.modalClose) {
+          elements.modalClose.addEventListener("click", hideModal);
+        }
+        console.log(
+          "Modal bağlama düyməsi üçün hadisə dinləyicisi əlavə edildi."
+        );
+        if (elements.bonusButton) {
+          elements.bonusButton.addEventListener("click", claimBonus);
+        }
+        console.log("Bonus düyməsi üçün hadisə dinləyicisi əlavə edildi.");
+        function generateReferralCode() {
+          return Math.random().toString(36).substring(2, 10).toUpperCase();
+        }
+        if (!userData.referralCode) {
+          userData.referralCode = generateReferralCode();
+          console.log(
+            "Yeni istifadəçi üçün dəvət kodu yaradıldı:",
+            userData.referralCode
+          );
+        }
+      });
+    </script>
+  </body>
+</html>
