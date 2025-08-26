@@ -1605,15 +1605,33 @@
           </div>
           <div class="action-buttons">
             <button
-              id="increaseClickPowerButton"
+              id="goldLotteryButton"
               class="action-button upgrade-button"
             >
-              <i class="fas fa-arrow-up"></i>
-              <span id="increaseClickPowerButtonText">Klik gücünü artır</span>
+              <i class="fas fa-ticket-alt"></i>
+              <span id="goldLotteryButtonText">Qızıl Lotoreya</span>
             </button>
             <button id="bonusButton" class="action-button bonus-button">
               <i class="fas fa-gift"></i>
               <span id="bonusButtonText">Bonus Qazan</span>
+            </button>
+          </div>
+        </section>
+        <!-- Qızıl Lotoreya Bölməsi -->
+        <section id="lotterySection" class="content-section">
+          <h2 id="goldLotteryTitle">Qızıl Lotoreya</h2>
+          <p id="goldLotterySubtitle">Bilet al və böyük mükafatları qazan!</p>
+          <div class="balance-card">
+            <p id="lotteryTicketCostLabel" class="balance-label">Bilet qiyməti: 1,000 CC</p>
+          </div>
+          <div class="action-buttons">
+            <button id="lotteryPlayButton" class="action-button upgrade-button">
+              <i class="fas fa-coins"></i>
+              <span id="lotteryPlayButtonText">Bileti al və oyna</span>
+            </button>
+            <button id="lotteryBackButton" class="action-button bonus-button">
+              <i class="fas fa-arrow-left"></i>
+              <span id="lotteryBackButtonText">Geri</span>
             </button>
           </div>
         </section>
@@ -2237,6 +2255,15 @@
       let bonusTimer = null;
       let doubleClickPowerTimer = null;
       let doubleClickPowerActive = false;
+      // Lottery state and constants
+      const LOTTERY_TICKET_COST = 1000; // CC
+      const LOTTERY_REWARDS = [
+        { chance: 0.60, reward: () => 500 },
+        { chance: 0.25, reward: () => 1000 },
+        { chance: 0.10, reward: () => 2500 },
+        { chance: 0.04, reward: () => 10000 },
+        { chance: 0.01, reward: () => 50000 },
+      ];
       const BONUS_COOLDOWN = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
       const MINE_MIN_INTERVAL_MS = 120; // Minimum interval between mines to limit spam
       const OFFLINE_EARN_MAX_SECONDS = 21600; // Cap offline earnings to 6 hours
@@ -2304,6 +2331,12 @@
           increaseClickPowerButtonText: `Klik gücünü artır ({cost} CC)`,
           increaseClickPowerButtonMaxLevel: "Maks. Səviyyə",
           bonusButtonText: "Bonus Qazan",
+          goldLotteryButtonText: "Qızıl Lotoreya",
+          goldLotteryTitle: "Qızıl Lotoreya",
+          goldLotterySubtitle: "Bilet al və böyük mükafatları qazan!",
+          lotteryTicketCostLabel: "Bilet qiyməti: 1,000 CC",
+          lotteryPlayButtonText: "Bileti al və oyna",
+          lotteryBackButtonText: "Geri",
           tasksTitle: "Tapşırıqlar",
           tasksSubtitle: "Tapşırıqları tamamlayaraq əlavə CaspianCoin qazanın.",
           taskJoinTelegram: "Telegram Kanalına Qoşul",
@@ -2417,6 +2450,12 @@
           increaseClickPowerButtonText: `Increase Click Power ({cost} CC)`,
           increaseClickPowerButtonMaxLevel: "Max Level",
           bonusButtonText: "Claim Bonus",
+          goldLotteryButtonText: "Gold Lottery",
+          goldLotteryTitle: "Gold Lottery",
+          goldLotterySubtitle: "Buy a ticket and win big rewards!",
+          lotteryTicketCostLabel: "Ticket price: 1,000 CC",
+          lotteryPlayButtonText: "Buy ticket and play",
+          lotteryBackButtonText: "Back",
           tasksTitle: "Tasks",
           tasksSubtitle: "Earn extra CaspianCoin by completing tasks.",
           taskJoinTelegram: "Join Telegram Channel",
@@ -2528,6 +2567,12 @@
           increaseClickPowerButtonText: `Увеличить силу клика ({cost} CC)`,
           increaseClickPowerButtonMaxLevel: "Макс. уровень",
           bonusButtonText: "Получить бонус",
+          goldLotteryButtonText: "Золотая лотерея",
+          goldLotteryTitle: "Золотая лотерея",
+          goldLotterySubtitle: "Купите билет и выигрывайте крупные призы!",
+          lotteryTicketCostLabel: "Цена билета: 1,000 CC",
+          lotteryPlayButtonText: "Купить билет и играть",
+          lotteryBackButtonText: "Назад",
           tasksTitle: "Задания",
           tasksSubtitle:
             "Зарабатывайте дополнительные CaspianCoin, выполняя задания.",
@@ -2645,6 +2690,12 @@
           increaseClickPowerButtonText: `Tıklama gücünü artır ({cost} CC)`,
           increaseClickPowerButtonMaxLevel: "Maks. Seviye",
           bonusButtonText: "Bonus Al",
+          goldLotteryButtonText: "Altın Piyango",
+          goldLotteryTitle: "Altın Piyango",
+          goldLotterySubtitle: "Bilet al ve büyük ödüller kazan!",
+          lotteryTicketCostLabel: "Bilet fiyatı: 1.000 CC",
+          lotteryPlayButtonText: "Bilet al ve oyna",
+          lotteryBackButtonText: "Geri",
           tasksTitle: "Görevler",
           tasksSubtitle: "Görevleri tamamlayarak ekstra CaspianCoin kazanın.",
           taskJoinTelegram: "Telegram Kanalına Katıl",
@@ -3554,22 +3605,10 @@
             }
           }
         }
-        if (elements.increaseClickPowerButtonText) {
-          const currentUpgradeCost = getClickPowerUpgradeCost();
-          if (clickPower >= 50) { // Klik gücü maksimum 50-dir
-            elements.increaseClickPowerButtonText.textContent =
-              translations[userData.language].increaseClickPowerButtonMaxLevel;
-            elements.increaseClickPowerButton.disabled = true;
-          } else {
-            elements.increaseClickPowerButtonText.textContent = translations[
-              userData.language
-            ].increaseClickPowerButtonText.replace(
-              "{cost}",
-              formatNumber(currentUpgradeCost)
-            );
-            elements.increaseClickPowerButton.disabled =
-              balance < currentUpgradeCost;
-          }
+        if (elements.goldLotteryButtonText) {
+          elements.goldLotteryButtonText.textContent = translations[
+            userData.language
+          ].goldLotteryButtonText;
         }
         if (elements.displayUserId)
           elements.displayUserId.textContent =
@@ -3598,6 +3637,22 @@
         }
         if (elements.appName)
           elements.appName.textContent = currentTranslations.appName;
+        // Lottery translations
+        const goldLotteryTitleEl = document.getElementById("goldLotteryTitle");
+        if (goldLotteryTitleEl)
+          goldLotteryTitleEl.textContent = currentTranslations.goldLotteryTitle;
+        const goldLotterySubtitleEl = document.getElementById("goldLotterySubtitle");
+        if (goldLotterySubtitleEl)
+          goldLotterySubtitleEl.textContent = currentTranslations.goldLotterySubtitle;
+        const lotteryTicketCostLabelEl = document.getElementById("lotteryTicketCostLabel");
+        if (lotteryTicketCostLabelEl)
+          lotteryTicketCostLabelEl.textContent = currentTranslations.lotteryTicketCostLabel;
+        const lotteryPlayButtonTextEl = document.getElementById("lotteryPlayButtonText");
+        if (lotteryPlayButtonTextEl)
+          lotteryPlayButtonTextEl.textContent = currentTranslations.lotteryPlayButtonText;
+        const lotteryBackButtonTextEl = document.getElementById("lotteryBackButtonText");
+        if (lotteryBackButtonTextEl)
+          lotteryBackButtonTextEl.textContent = currentTranslations.lotteryBackButtonText;
         if (elements.subtitle)
           elements.subtitle.textContent = currentTranslations.subtitle;
         if (elements.balanceLabel)
@@ -4041,6 +4096,35 @@
           showToast(translations[userData.language].toastInsufficientFunds);
         }
       }
+      function playGoldLottery() {
+        if (balance < LOTTERY_TICKET_COST) {
+          showToast(translations[userData.language].toastInsufficientFunds);
+          return;
+        }
+        balance -= LOTTERY_TICKET_COST;
+        userData.balance = balance;
+        // Roll
+        const roll = Math.random();
+        let cumulative = 0;
+        let rewardAmount = 0;
+        for (const tier of LOTTERY_REWARDS) {
+          cumulative += tier.chance;
+          if (roll <= cumulative) {
+            rewardAmount = tier.reward();
+            break;
+          }
+        }
+        if (rewardAmount > 0) {
+          balance += rewardAmount;
+          totalEarned += rewardAmount;
+          showToast(`+${formatNumber(rewardAmount)} CC`);
+          createConfetti(window.innerWidth / 2, window.innerHeight / 2);
+        } else {
+          showToast(translations[userData.language].toastPurchased);
+        }
+        updateUI();
+        saveUserData();
+      }
       function exchangeCoins() {
         console.log("Mübadilə edilir.");
         const amount = parseFloat(elements.exchangeAmountInput.value);
@@ -4320,14 +4404,23 @@
           mineButtonText: document.getElementById("mineButtonText"),
           clickPowerDisplay: document.getElementById("clickPower"),
           totalEarnedDisplay: document.getElementById("totalEarned"),
-          increaseClickPowerButton: document.getElementById(
-            "increaseClickPowerButton"
+          goldLotteryButton: document.getElementById(
+            "goldLotteryButton"
           ),
-          increaseClickPowerButtonText: document.getElementById(
-            "increaseClickPowerButtonText"
+          goldLotteryButtonText: document.getElementById(
+            "goldLotteryButtonText"
           ),
           bonusButton: document.getElementById("bonusButton"),
           bonusButtonText: document.getElementById("bonusButtonText"),
+          lotterySection: document.getElementById("lotterySection"),
+          goldLotteryTitle: document.getElementById("goldLotteryTitle"),
+          goldLotteryTitleText: document.getElementById("goldLotteryTitle"),
+          goldLotteryButton: document.getElementById("goldLotteryButton"),
+          goldLotteryButtonText: document.getElementById("goldLotteryButtonText"),
+          lotteryPlayButton: document.getElementById("lotteryPlayButton"),
+          lotteryPlayButtonText: document.getElementById("lotteryPlayButtonText"),
+          lotteryBackButton: document.getElementById("lotteryBackButton"),
+          lotteryBackButtonText: document.getElementById("lotteryBackButtonText"),
           sections: document.querySelectorAll(".content-section"),
           navButtons: document.querySelectorAll(".nav-button"),
           messageModal: document.getElementById("messageModal"),
@@ -4480,6 +4573,38 @@
             elements.minerButton.classList.add("active-press");
             mine(e);
           });
+        }
+        if (elements.goldLotteryButton) {
+          elements.goldLotteryButton.addEventListener("click", () => {
+            elements.navButtons.forEach((btn) => btn.classList.remove("active"));
+            const homeNavBtn = document.querySelector('.nav-button[data-section="home"]');
+            if (homeNavBtn) homeNavBtn.classList.add("active");
+            elements.sections.forEach((section) => {
+              if (section.id === "lotterySection") {
+                section.classList.add("active");
+              } else {
+                section.classList.remove("active");
+              }
+            });
+          });
+        }
+        if (elements.lotteryBackButton) {
+          elements.lotteryBackButton.addEventListener("click", () => {
+            elements.navButtons.forEach((btn) => btn.classList.remove("active"));
+            const homeNavBtn = document.querySelector('.nav-button[data-section="home"]');
+            if (homeNavBtn) homeNavBtn.classList.add("active");
+            elements.sections.forEach((section) => {
+              if (section.id === "homeSection") {
+                section.classList.add("active");
+              } else {
+                section.classList.remove("active");
+              }
+            });
+          });
+        }
+        if (elements.lotteryPlayButton) {
+          elements.lotteryPlayButton.addEventListener("click", playGoldLottery);
+        }
           elements.minerButton.addEventListener("pointerup", () => {
             elements.minerButton.classList.remove("active-press");
           });
@@ -4490,29 +4615,8 @@
         } else {
           console.error("Xəta: 'minerButton' elementi tapılmadı!");
         }
-        if (elements.increaseClickPowerButton) {
-          elements.increaseClickPowerButton.addEventListener("click", () => {
-            const currentUpgradeCost = getClickPowerUpgradeCost();
-            const powerIncrease = 1;
-            if (clickPower >= 50) {
-              // Klik gücü maksimum 50-dir
-              showToast("Klik gücü maksimum səviyyədədir!");
-              return;
-            }
-            if (balance >= currentUpgradeCost) {
-              balance -= currentUpgradeCost;
-              clickPower += powerIncrease;
-              userData.balance = balance;
-              userData.clickPower = clickPower;
-              userData.clickPowerUpgradesCount++;
-              saveUserData();
-              updateUI();
-              showToast(translations[userData.language].toastPurchased);
-            } else {
-              showToast(translations[userData.language].toastInsufficientFunds);
-            }
-          });
-        }
+        // increaseClickPowerButton removed in favor of Gold Lottery
+        // No action needed here
         document.querySelectorAll(".shop-item-button").forEach((button) => {
           button.addEventListener("click", (e) => {
             const itemId = e.target.closest(".shop-item").dataset.itemId;
