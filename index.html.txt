@@ -254,6 +254,44 @@
         transition: all 0.3s ease;
       }
 
+      /* Gold Lottery Styles */
+      .gold-lottery-container {
+        background: linear-gradient(135deg, rgba(255,215,0,0.12), rgba(255,193,7,0.08));
+        border: 1px solid rgba(255,215,0,0.35);
+        border-radius: 16px;
+        padding: 12px;
+        margin-bottom: 12px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.25), inset 0 0 18px rgba(255,215,0,0.12);
+      }
+      .gold-lottery-container h2 {
+        background: linear-gradient(90deg, #ffd700, #ffc107);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-align: center;
+        margin-bottom: 6px;
+      }
+      .gold-card {
+        border-color: rgba(255,215,0,0.45) !important;
+        box-shadow: 0 8px 24px rgba(255,215,0,0.18);
+      }
+      .gold-pill-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        justify-content: center;
+        margin-bottom: 10px;
+      }
+      .gold-pill {
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,215,0,0.5);
+        background: radial-gradient(circle at 30% 20%, rgba(255,215,0,0.25), rgba(255,193,7,0.15));
+        color: #ffe082;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+      }
+
       /* Energy Bar Styles */
       .energy-bar-container {
         width: 100%;
@@ -1618,23 +1656,32 @@
           </div>
         </section>
         <!-- Qızıl Lotoreya Bölməsi -->
-        <section id="lotterySection" class="content-section">
-          <h2 id="goldLotteryTitle">Qızıl Lotoreya</h2>
-          <p id="goldLotterySubtitle">Bilet al və böyük mükafatları qazan!</p>
-          <div class="balance-card">
-            <p id="lotteryTicketCostLabel" class="balance-label">Bilet qiyməti: 1,000 CC</p>
-          </div>
-          <div class="action-buttons">
+                 <section id="lotterySection" class="content-section">
+           <div class="gold-lottery-container">
+             <h2 id="goldLotteryTitle">Qızıl Lotoreya</h2>
+             <p id="goldLotterySubtitle">Bilet al və böyük mükafatları qazan!</p>
+             <div class="gold-pill-list">
+               <span id="goldLotteryTermsLabel" class="gold-pill">Şərtlər</span>
+               <span id="goldLotteryPricesLabel" class="gold-pill">Qiymətlər</span>
+               <span id="goldLotteryTicketsLabel" class="gold-pill">Biletlər</span>
+               <span id="goldLotteryPrizesLabel" class="gold-pill">Uduşlar</span>
+               <span id="goldLotteryQueueLabel" class="gold-pill">Lotereya sırası</span>
+             </div>
+             <div class="balance-card gold-card">
+               <p id="lotteryTicketCostLabel" class="balance-label">Bilet qiyməti: 1,000 CC</p>
+             </div>
+             <div class="action-buttons">
             <button id="lotteryPlayButton" class="action-button upgrade-button">
               <i class="fas fa-coins"></i>
               <span id="lotteryPlayButtonText">Bileti al və oyna</span>
             </button>
-            <button id="lotteryBackButton" class="action-button bonus-button">
-              <i class="fas fa-arrow-left"></i>
-              <span id="lotteryBackButtonText">Geri</span>
-            </button>
-          </div>
-        </section>
+                         <button id="lotteryBackButton" class="action-button bonus-button">
+               <i class="fas fa-arrow-left"></i>
+               <span id="lotteryBackButtonText">Geri</span>
+             </button>
+           </div>
+           </div>
+         </section>
         <!-- Tapşırıqlar Bölməsi -->
         <section id="tasksSection" class="content-section">
           <h2 id="tasksTitle">Tapşırıqlar</h2>
@@ -2334,6 +2381,11 @@
           goldLotteryButtonText: "Qızıl Lotoreya",
           goldLotteryTitle: "Qızıl Lotoreya",
           goldLotterySubtitle: "Bilet al və böyük mükafatları qazan!",
+          goldLotteryTermsLabel: "Şərtlər",
+          goldLotteryPricesLabel: "Qiymətlər",
+          goldLotteryTicketsLabel: "Biletlər",
+          goldLotteryPrizesLabel: "Uduşlar",
+          goldLotteryQueueLabel: "Lotereya sırası",
           lotteryTicketCostLabel: "Bilet qiyməti: 1,000 CC",
           lotteryPlayButtonText: "Bileti al və oyna",
           lotteryBackButtonText: "Geri",
@@ -2453,6 +2505,11 @@
           goldLotteryButtonText: "Gold Lottery",
           goldLotteryTitle: "Gold Lottery",
           goldLotterySubtitle: "Buy a ticket and win big rewards!",
+          goldLotteryTermsLabel: "Terms",
+          goldLotteryPricesLabel: "Prices",
+          goldLotteryTicketsLabel: "Tickets",
+          goldLotteryPrizesLabel: "Prizes",
+          goldLotteryQueueLabel: "Lottery Queue",
           lotteryTicketCostLabel: "Ticket price: 1,000 CC",
           lotteryPlayButtonText: "Buy ticket and play",
           lotteryBackButtonText: "Back",
@@ -2570,6 +2627,11 @@
           goldLotteryButtonText: "Золотая лотерея",
           goldLotteryTitle: "Золотая лотерея",
           goldLotterySubtitle: "Купите билет и выигрывайте крупные призы!",
+          goldLotteryTermsLabel: "Условия",
+          goldLotteryPricesLabel: "Цены",
+          goldLotteryTicketsLabel: "Билеты",
+          goldLotteryPrizesLabel: "Призы",
+          goldLotteryQueueLabel: "Очередь лотереи",
           lotteryTicketCostLabel: "Цена билета: 1,000 CC",
           lotteryPlayButtonText: "Купить билет и играть",
           lotteryBackButtonText: "Назад",
@@ -2693,6 +2755,11 @@
           goldLotteryButtonText: "Altın Piyango",
           goldLotteryTitle: "Altın Piyango",
           goldLotterySubtitle: "Bilet al ve büyük ödüller kazan!",
+          goldLotteryTermsLabel: "Şartlar",
+          goldLotteryPricesLabel: "Fiyatlar",
+          goldLotteryTicketsLabel: "Biletler",
+          goldLotteryPrizesLabel: "Ödüller",
+          goldLotteryQueueLabel: "Piyango sırası",
           lotteryTicketCostLabel: "Bilet fiyatı: 1.000 CC",
           lotteryPlayButtonText: "Bilet al ve oyna",
           lotteryBackButtonText: "Geri",
@@ -3653,6 +3720,21 @@
         const lotteryBackButtonTextEl = document.getElementById("lotteryBackButtonText");
         if (lotteryBackButtonTextEl)
           lotteryBackButtonTextEl.textContent = currentTranslations.lotteryBackButtonText;
+        const goldLotteryTermsLabelEl = document.getElementById("goldLotteryTermsLabel");
+        if (goldLotteryTermsLabelEl)
+          goldLotteryTermsLabelEl.textContent = currentTranslations.goldLotteryTermsLabel;
+        const goldLotteryPricesLabelEl = document.getElementById("goldLotteryPricesLabel");
+        if (goldLotteryPricesLabelEl)
+          goldLotteryPricesLabelEl.textContent = currentTranslations.goldLotteryPricesLabel;
+        const goldLotteryTicketsLabelEl = document.getElementById("goldLotteryTicketsLabel");
+        if (goldLotteryTicketsLabelEl)
+          goldLotteryTicketsLabelEl.textContent = currentTranslations.goldLotteryTicketsLabel;
+        const goldLotteryPrizesLabelEl = document.getElementById("goldLotteryPrizesLabel");
+        if (goldLotteryPrizesLabelEl)
+          goldLotteryPrizesLabelEl.textContent = currentTranslations.goldLotteryPrizesLabel;
+        const goldLotteryQueueLabelEl = document.getElementById("goldLotteryQueueLabel");
+        if (goldLotteryQueueLabelEl)
+          goldLotteryQueueLabelEl.textContent = currentTranslations.goldLotteryQueueLabel;
         if (elements.subtitle)
           elements.subtitle.textContent = currentTranslations.subtitle;
         if (elements.balanceLabel)
