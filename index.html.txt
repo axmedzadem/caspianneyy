@@ -4404,17 +4404,11 @@
           mineButtonText: document.getElementById("mineButtonText"),
           clickPowerDisplay: document.getElementById("clickPower"),
           totalEarnedDisplay: document.getElementById("totalEarned"),
-          goldLotteryButton: document.getElementById(
-            "goldLotteryButton"
-          ),
-          goldLotteryButtonText: document.getElementById(
-            "goldLotteryButtonText"
-          ),
+
           bonusButton: document.getElementById("bonusButton"),
           bonusButtonText: document.getElementById("bonusButtonText"),
           lotterySection: document.getElementById("lotterySection"),
           goldLotteryTitle: document.getElementById("goldLotteryTitle"),
-          goldLotteryTitleText: document.getElementById("goldLotteryTitle"),
           goldLotteryButton: document.getElementById("goldLotteryButton"),
           goldLotteryButtonText: document.getElementById("goldLotteryButtonText"),
           lotteryPlayButton: document.getElementById("lotteryPlayButton"),
@@ -4573,6 +4567,15 @@
             elements.minerButton.classList.add("active-press");
             mine(e);
           });
+          elements.minerButton.addEventListener("pointerup", () => {
+            elements.minerButton.classList.remove("active-press");
+          });
+          elements.minerButton.addEventListener("pointerleave", () => {
+            elements.minerButton.classList.remove("active-press");
+          });
+          console.log("Mədən düyməsi üçün hadisə dinləyiciləri əlavə edildi.");
+        } else {
+          console.error("Xəta: 'minerButton' elementi tapılmadı!");
         }
         if (elements.goldLotteryButton) {
           elements.goldLotteryButton.addEventListener("click", () => {
@@ -4604,16 +4607,6 @@
         }
         if (elements.lotteryPlayButton) {
           elements.lotteryPlayButton.addEventListener("click", playGoldLottery);
-        }
-          elements.minerButton.addEventListener("pointerup", () => {
-            elements.minerButton.classList.remove("active-press");
-          });
-          elements.minerButton.addEventListener("pointerleave", () => {
-            elements.minerButton.classList.remove("active-press");
-          });
-          console.log("Mədən düyməsi üçün hadisə dinləyiciləri əlavə edildi.");
-        } else {
-          console.error("Xəta: 'minerButton' elementi tapılmadı!");
         }
         // increaseClickPowerButton removed in favor of Gold Lottery
         // No action needed here
