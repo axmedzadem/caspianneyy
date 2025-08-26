@@ -2238,6 +2238,9 @@
       let doubleClickPowerTimer = null;
       let doubleClickPowerActive = false;
       const BONUS_COOLDOWN = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
+      const MINE_MIN_INTERVAL_MS = 120; // Minimum interval between mines to limit spam
+      const OFFLINE_EARN_MAX_SECONDS = 21600; // Cap offline earnings to 6 hours
+      let lastMineTimestamp = 0; // Timestamp of last mine action
       // Constants for click power upgrade
       const BASE_CLICK_POWER_UPGRADE_COST = 500; // Artırılmış ilkin qiymət
       const CLICK_POWER_COST_INCREMENT = 200; // Artırılmış qiymət artımı
@@ -3210,6 +3213,25 @@
             userData.userName =
               userData.userName ||
               translations[userData.language].profileUserNameDefault;
+            // Offline earnings calculation
+            try {
+              const lastLoginTs = Number(userData.lastLogin) || 0;
+              const nowTs = Date.now();
+              const offlineSeconds = Math.min(
+                Math.max(0, Math.floor((nowTs - lastLoginTs) / 1000)),
+                OFFLINE_EARN_MAX_SECONDS
+              );
+              if (offlineSeconds > 0 && autoMineRate > 0) {
+                const offlineEarnings = offlineSeconds * autoMineRate;
+                balance += offlineEarnings;
+                totalEarned += offlineEarnings;
+                console.log(
+                  `Offline qazanc: ${offlineEarnings.toFixed(2)} CC (${offlineSeconds}s @ ${autoMineRate}/s)`
+                );
+              }
+            } catch (e) {
+              console.warn("Offline earnings hesablanarkən xəta:", e);
+            }
             if (elements.walletAddressInput)
               elements.walletAddressInput.value = userData.walletAddress || "";
             if (elements.languageSelect)
@@ -3753,6 +3775,11 @@
       }
       // --- Game Logic Functions ---
       function mine(event) {
+        const nowTs = Date.now();
+        if (nowTs - lastMineTimestamp < MINE_MIN_INTERVAL_MS) {
+          return;
+        }
+        lastMineTimestamp = nowTs;
         console.log(
           "Mine funksiyası çağırıldı. Mədəndən əvvəlki balans:",
           balance.toFixed(6)
@@ -3851,6 +3878,26 @@
         saveUserData();
         showToast(translations[userData.language].toastBonusClaimed);
         updateBonusButtonState();
+      }
+      function activateDoubleClickPower(durationMs = 15000) {
+        if (doubleClickPowerActive) {
+          if (doubleClickPowerTimer) clearTimeout(doubleClickPowerTimer);
+        }
+        doubleClickPowerActive = true;
+        bonusMultiplier = 2;
+        doubleClickPowerTimer = setTimeout(() => {
+          deactivateDoubleClickPower();
+        }, durationMs);
+        updateUI();
+      }
+      function deactivateDoubleClickPower() {
+        doubleClickPowerActive = false;
+        bonusMultiplier = 1;
+        if (doubleClickPowerTimer) {
+          clearTimeout(doubleClickPowerTimer);
+          doubleClickPowerTimer = null;
+        }
+        updateUI();
       }
       function updateBonusButtonState() {
         if (
